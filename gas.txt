@@ -5,7 +5,7 @@
 var SHEET_ID = '1aAsmATpkrmPJwPaqIIisadBB3bN8aKENKeIvLp1gLBQ';
 
 var COLS = {
-  members: ['userId', 'no', 'name', 'chips', 'stamps', 'visits', 'lastStamp', 'createdAt'],
+  members: ['userId', 'no', 'name', 'chips', 'stamps', 'visits', 'lastStamp', 'createdAt', 'phone'],
   rewards: ['id', 'userId', 'title', 'issuedAt', 'usedAt'],
   log: ['at', 'staff', 'no', 'type', 'amount', 'note'],
   settings: ['key', 'value']
@@ -30,7 +30,8 @@ function write_(name, rows) {
   var sh = sheet_(name), cols = COLS[name];
   var data = rows.map(function (r) { return cols.map(function (c) { return r[c] == null ? '' : r[c]; }); });
   if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, cols.length).clearContent();
-  if (data.length) sh.getRange(2, 1, data.length, cols.length).setValues(data);
+  // 文字のまま入れる（電話番号の先頭0や日付が勝手に変換されないように）
+  if (data.length) sh.getRange(2, 1, data.length, cols.length).setNumberFormat('@').setValues(data);
 }
 
 function doPost(e) {
@@ -119,7 +120,7 @@ function casaHandle(req, db, ctx) {
       goal: CASA_RULES.goal, milestones: CASA_RULES.milestones, rewards: open
     };
   }
-  function staffView(m) { var o = view(m); o.history = db.history(m.no, 30); return o; }
+  function staffView(m) { var o = view(m); o.phone = String(m.phone || ''); o.history = db.history(m.no, 30); return o; }
   function needStaff() { if (!ctx.isStaff) throw new Error('スタッフ用の合言葉が違います'); }
   function needMember(m) { if (!m) throw new Error('会員が見つかりません'); return m; }
 
@@ -128,10 +129,16 @@ function casaHandle(req, db, ctx) {
     case 'me': // お客さん：自分の会員証（初回は登録）
       if (!ctx.userId) throw new Error('LINEの確認ができませんでした');
       m = byUser(ctx.userId);
+      var phone = String(req.phone || '').replace(/[^0-9]/g, '');
+      if (!m || !m.phone) { // 初回は電話番号だけ登録してもらう
+        if (!phone) return { needPhone: true };
+        if (!/^0[0-9]{9,10}$/.test(phone)) throw new Error('電話番号を確かめてください');
+      }
+      if (m && !m.phone) { m.phone = phone; db.save(d); }
       if (!m) {
         var max = 1000;
         for (var i = 0; i < d.members.length; i++) max = Math.max(max, Number(d.members[i].no) || 0);
-        m = { userId: ctx.userId, no: max + 1, name: ctx.name || '', chips: 0, stamps: 0, visits: 0, lastStamp: '', createdAt: ctx.now };
+        m = { userId: ctx.userId, no: max + 1, name: ctx.name || '', chips: 0, stamps: 0, visits: 0, lastStamp: '', createdAt: ctx.now, phone: phone };
         d.members.push(m);
         db.save(d);
         db.log({ at: ctx.now, staff: '', no: m.no, type: '登録', amount: '', note: '' });
