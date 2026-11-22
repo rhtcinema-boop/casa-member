@@ -1,20 +1,21 @@
-:root { --bg:#0d0f12; --panel:#171a1f; --line:#2a2f37; --text:#f3f1ea; --sub:#9aa0a8; --gold:#d8b45a; --gold2:#f1d894; --ok:#3ecf8e; --ng:#ff6b6b; }
+/* 配色は青（--gold / --gold2 は主役の色の名前。今は青を入れている） */
+:root { --bg:#081226; --panel:#0f1d3a; --line:#22345c; --text:#f2f6ff; --sub:#93a4c4; --gold:#2f7df6; --gold2:#8fc0ff; --ok:#3ecf8e; --ng:#ff6b6b; }
 * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html,body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif; }
 body { padding:16px 16px calc(24px + env(safe-area-inset-bottom)); max-width:480px; margin:0 auto; }
 h2 { font-size:13px; font-weight:600; color:var(--sub); letter-spacing:.08em; margin:22px 4px 8px; }
 button { font:inherit; color:inherit; border:0; border-radius:12px; cursor:pointer; }
 button:disabled { opacity:.4; }
-.gold { background:linear-gradient(135deg,var(--gold2),var(--gold)); color:#1b1505; font-weight:700; }
+.gold { background:linear-gradient(135deg,#4c97ff,#1f62e0); color:#fff; font-weight:700; }
 .ghost { background:transparent; border:1px solid var(--line); }
 .panel { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px; }
 
 /* 会員証 */
-.card { background:linear-gradient(145deg,#23262d,#121418); border:1px solid #3a3323; border-radius:20px; padding:18px; display:flex; gap:14px; align-items:center; box-shadow:0 10px 30px rgba(0,0,0,.5); }
+.card { background:linear-gradient(145deg,#1b55c9,#0b2a6b); border:1px solid #3f7be6; border-radius:20px; padding:18px; display:flex; gap:14px; align-items:center; box-shadow:0 10px 30px rgba(0,0,0,.5); }
 .card .info { flex:1; min-width:0; }
 .card img.logo { height:26px; display:block; margin-bottom:14px; }
 .card .name { font-size:19px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.card .no { color:var(--gold); font-size:14px; letter-spacing:.12em; margin-top:4px; font-variant-numeric:tabular-nums; }
+.card .no { color:#cfe2ff; font-size:14px; letter-spacing:.12em; margin-top:4px; font-variant-numeric:tabular-nums; }
 .qr { background:#fff; padding:8px; border-radius:12px; line-height:0; flex:none; }
 .qr img, .qr canvas { width:104px; height:104px; image-rendering:pixelated; }
 
@@ -23,10 +24,10 @@ button:disabled { opacity:.4; }
 .chips span { color:var(--sub); font-size:13px; }
 
 .stamps { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }
-.st { aspect-ratio:1; border-radius:50%; border:1.5px dashed #3b414b; display:grid; place-items:center; color:#565c66; font-size:13px; font-variant-numeric:tabular-nums; position:relative; }
-.st.on { border:0; background:radial-gradient(circle at 35% 30%,var(--gold2),var(--gold)); color:#1b1505; font-weight:800; font-size:18px; }
-.st.gift:not(.on) { border-color:var(--gold); color:var(--gold); }
-.st.gift::after { content:"★"; position:absolute; top:-6px; right:-2px; font-size:13px; color:var(--gold); }
+.st { aspect-ratio:1; border-radius:50%; border:1.5px dashed #33497a; display:grid; place-items:center; color:#5f739c; font-size:13px; font-variant-numeric:tabular-nums; position:relative; }
+.st.on { border:0; background:radial-gradient(circle at 35% 30%,#6fb0ff,#1f62e0); color:#fff; font-weight:800; font-size:18px; }
+.st.gift:not(.on) { border-color:var(--gold2); color:var(--gold2); }
+.st.gift::after { content:"★"; position:absolute; top:-6px; right:-2px; font-size:13px; color:#ffd766; }
 .hint { color:var(--sub); font-size:12px; margin:10px 2px 0; }
 
 .reward { display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid var(--line); }
@@ -50,12 +51,13 @@ button:disabled { opacity:.4; }
 .toast.show { display:block; } .toast.ng { border-color:var(--ng); color:var(--ng); } .toast.ok { border-color:var(--ok); color:var(--ok); }
 
 /* スタッフ用 */
-input { font:inherit; color:var(--text); background:#0f1114; border:1px solid var(--line); border-radius:12px; padding:13px 14px; width:100%; min-width:0; }
+input { font:inherit; color:var(--text); background:#0a1630; border:1px solid var(--line); border-radius:12px; padding:13px 14px; width:100%; min-width:0; }
 .row { display:flex; gap:10px; } .row > * { flex:1; }
 .stack > * + * { margin-top:10px; }
 .big-btn { padding:16px; width:100%; font-size:16px; }
 .who { display:flex; justify-content:space-between; align-items:baseline; }
-.who .name { font-size:20px; font-weight:700; } .who .no { color:var(--gold); letter-spacing:.1em; }
+.who .name { font-size:20px; font-weight:700; } .who .no { color:var(--gold2); letter-spacing:.1em; }
+.tel { color:var(--sub); font-size:14px; margin-top:4px; font-variant-numeric:tabular-nums; }
 .kv { display:flex; justify-content:space-between; padding:10px 0; border-top:1px solid var(--line); }
 .kv b { font-size:22px; color:var(--gold2); font-variant-numeric:tabular-nums; }
 video { width:100%; border-radius:14px; background:#000; display:none; }
@@ -72,3 +74,10 @@ video { width:100%; border-radius:14px; background:#000; display:none; }
   body.staff { max-width:1000px; }
   .cols { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
 }
+
+/* 会員登録（初回だけ） */
+.reg { min-height:80vh; display:flex; flex-direction:column; justify-content:center; gap:14px; }
+.reg[hidden] { display:none; }
+.reg .logo { height:40px; align-self:center; margin-bottom:8px; }
+.reg h1 { font-size:20px; text-align:center; margin:0 0 10px; }
+.reg input { font-size:20px; text-align:center; letter-spacing:.06em; padding:16px; }
