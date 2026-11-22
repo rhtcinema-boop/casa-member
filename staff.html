@@ -25,6 +25,7 @@
   <h2>会員</h2>
   <div class="panel">
     <div class="who"><span class="name" id="name"></span><span class="no" id="no"></span></div>
+    <div class="tel" id="tel"></div>
     <div class="kv" style="margin-top:12px"><span>チップ残り</span><b id="chips"></b></div>
     <div class="kv"><span>スタンプ</span><b id="stamps"></b></div>
     <div class="kv"><span>使える特典</span><b id="rw"></b></div>
@@ -64,6 +65,7 @@ function call(req) { req.pass = $('pass').value; req.staff = $('staff').value.tr
 function render(v) {
   cur = v; $('member').hidden = false;
   $('name').textContent = v.name || 'ゲスト'; $('no').textContent = 'No. ' + v.no;
+  $('tel').textContent = v.phone || '';
   $('chips').textContent = num(v.chips);
   $('stamps').textContent = v.stamps + ' / ' + v.goal;
   $('rw').textContent = v.rewards.length;
