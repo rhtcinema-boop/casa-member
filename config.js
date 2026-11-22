@@ -1,6 +1,6 @@
 // 本番につなぐときに2つ入れる。空のままだと、この端末の中だけで動く試し用になる。
 var CFG = {
-  LIFF_ID: '',  // LINE の LIFF ID
+  LIFF_ID: '2012748533-NJVEG2R0',  // LINE の LIFF ID
   GAS_URL: 'https://script.google.com/macros/s/AKfycbwpBCUXheL0Q91E5E7uUIoMcHcUjY6UxyoaQrtWhQ1p8G6Cj8pghaRjDJj8JsTCam0brg/exec'   // Apps Script のウェブアプリURL
 };
 
