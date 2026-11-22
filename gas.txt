@@ -87,10 +87,11 @@ function setup() { ['members', 'rewards', 'log', 'settings'].forEach(sheet_); Ur
 
 var CASA_RULES = {
   goal: 10, // スタンプ何個で1枚たまるか
-  // 何個目で特典が出るか（名前は店で決めて書き換える）
+  // 何個目で特典が出るか（2026-11-22 オーナー指定）
   milestones: [
-    { at: 5, title: '特典A（仮）' },
-    { at: 10, title: '特典B（仮）' }
+    { at: 3, title: '100BB 無料プレゼント' },
+    { at: 5, title: 'アルコール飲み放題 無料' },
+    { at: 10, title: '5,000 casa pt プレゼント' }
   ]
 };
 
