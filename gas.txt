@@ -1,0 +1,194 @@
+// 本番用（Apps Script）。この後ろに core.js の中身をつなげて1つのファイルとして入れる（tools なしで gas.txt を作る: cat Code.gs core.js）。
+// スプレッドシートの「settings」タブに2つ入れる（A列=名前、B列=値）:
+//   STAFF_PASS      … スタッフ用の合言葉
+//   LINE_CHANNEL_ID … LINEログイン チャネルのID（お客さんの本人確認に使う）
+var SHEET_ID = '1aAsmATpkrmPJwPaqIIisadBB3bN8aKENKeIvLp1gLBQ';
+
+var COLS = {
+  members: ['userId', 'no', 'name', 'chips', 'stamps', 'visits', 'lastStamp', 'createdAt'],
+  rewards: ['id', 'userId', 'title', 'issuedAt', 'usedAt'],
+  log: ['at', 'staff', 'no', 'type', 'amount', 'note'],
+  settings: ['key', 'value']
+};
+
+function sheet_(name) {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ss.getSheetByName(name);
+  if (!sh) { sh = ss.insertSheet(name); sh.appendRow(COLS[name]); }
+  return sh;
+}
+function read_(name) {
+  var v = sheet_(name).getDataRange().getDisplayValues(), out = [];
+  for (var i = 1; i < v.length; i++) {
+    var o = {};
+    for (var c = 0; c < COLS[name].length; c++) o[COLS[name][c]] = v[i][c];
+    out.push(o);
+  }
+  return out;
+}
+function write_(name, rows) {
+  var sh = sheet_(name), cols = COLS[name];
+  var data = rows.map(function (r) { return cols.map(function (c) { return r[c] == null ? '' : r[c]; }); });
+  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, cols.length).clearContent();
+  if (data.length) sh.getRange(2, 1, data.length, cols.length).setValues(data);
+}
+
+function doPost(e) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var req = JSON.parse(e.postData.contents);
+    var set = {};
+    read_('settings').forEach(function (r) { set[r.key] = String(r.value); });
+    var ctx = {
+      now: new Date().toISOString(),
+      today: Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd'),
+      userId: '', name: '',
+      isStaff: !!req.pass && String(req.pass) === set.STAFF_PASS
+    };
+    if (req.idToken) { // LINE に問い合わせて本人か確かめる
+      var r = UrlFetchApp.fetch('https://api.line.me/oauth2/v2.1/verify', {
+        method: 'post', muteHttpExceptions: true,
+        payload: { id_token: req.idToken, client_id: set.LINE_CHANNEL_ID }
+      });
+      var j = JSON.parse(r.getContentText());
+      if (j.sub) { ctx.userId = j.sub; ctx.name = j.name || ''; }
+    }
+    var db = {
+      load: function () { return { members: read_('members'), rewards: read_('rewards') }; },
+      save: function (d) { write_('members', d.members); write_('rewards', d.rewards); },
+      history: function (no, n) { // 新しい順に n 件
+        var v = sheet_('log').getDataRange().getValues(), out = [];
+        for (var i = v.length - 1; i >= 1 && out.length < n; i--) {
+          if (Number(v[i][2]) !== Number(no)) continue;
+          var o = {};
+          for (var c = 0; c < COLS.log.length; c++) o[COLS.log[c]] = v[i][c] instanceof Date ? v[i][c].toISOString() : v[i][c];
+          out.push(o);
+        }
+        return out;
+      },
+      log: function (x) { sheet_('log').appendRow(COLS.log.map(function (c) { return x[c] == null ? '' : x[c]; })); }
+    };
+    return json_({ ok: true, data: casaHandle(req, db, ctx) });
+  } catch (err) {
+    return json_({ ok: false, error: String(err.message || err) });
+  } finally {
+    lock.releaseLock();
+  }
+}
+function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
+
+// 初回の許可用。エディタから1回だけ実行する。
+function setup() { ['members', 'rewards', 'log', 'settings'].forEach(sheet_); UrlFetchApp.fetch('https://api.line.me/oauth2/v2.1/verify', { method: 'post', muteHttpExceptions: true, payload: { id_token: 'x', client_id: 'x' } }); }
+
+// 会員証の計算ルール。
+// ブラウザの試し用（demo）と Apps Script（本番）で、このファイルをそのまま両方に入れて使う。
+
+var CASA_RULES = {
+  goal: 10, // スタンプ何個で1枚たまるか
+  // 何個目で特典が出るか（名前は店で決めて書き換える）
+  milestones: [
+    { at: 5, title: '特典A（仮）' },
+    { at: 10, title: '特典B（仮）' }
+  ]
+};
+
+// req: {op, ...} / db: {load(), save(data), log(entry), history(no, n)} / ctx: {now, today, userId, name, isStaff}
+function casaHandle(req, db, ctx) {
+  var d = db.load(); // {members: [], rewards: []}
+
+  function byUser(id) {
+    for (var i = 0; i < d.members.length; i++) if (String(d.members[i].userId) === String(id)) return d.members[i];
+    return null;
+  }
+  function byNo(no) {
+    var n = Number(String(no).replace(/[^0-9]/g, ''));
+    for (var i = 0; i < d.members.length; i++) if (Number(d.members[i].no) === n) return d.members[i];
+    return null;
+  }
+  function view(m) {
+    var open = [];
+    for (var i = 0; i < d.rewards.length; i++) {
+      var r = d.rewards[i];
+      if (String(r.userId) === String(m.userId) && !r.usedAt) open.push({ id: String(r.id), title: r.title, issuedAt: r.issuedAt });
+    }
+    return {
+      no: Number(m.no), name: m.name, chips: Number(m.chips) || 0,
+      stamps: Number(m.stamps) || 0, visits: Number(m.visits) || 0,
+      stampedToday: String(m.lastStamp) === ctx.today,
+      goal: CASA_RULES.goal, milestones: CASA_RULES.milestones, rewards: open
+    };
+  }
+  function staffView(m) { var o = view(m); o.history = db.history(m.no, 30); return o; }
+  function needStaff() { if (!ctx.isStaff) throw new Error('スタッフ用の合言葉が違います'); }
+  function needMember(m) { if (!m) throw new Error('会員が見つかりません'); return m; }
+
+  var m, out;
+  switch (req.op) {
+    case 'me': // お客さん：自分の会員証（初回は登録）
+      if (!ctx.userId) throw new Error('LINEの確認ができませんでした');
+      m = byUser(ctx.userId);
+      if (!m) {
+        var max = 1000;
+        for (var i = 0; i < d.members.length; i++) max = Math.max(max, Number(d.members[i].no) || 0);
+        m = { userId: ctx.userId, no: max + 1, name: ctx.name || '', chips: 0, stamps: 0, visits: 0, lastStamp: '', createdAt: ctx.now };
+        d.members.push(m);
+        db.save(d);
+        db.log({ at: ctx.now, staff: '', no: m.no, type: '登録', amount: '', note: '' });
+      }
+      return view(m);
+
+    case 'redeem': // お客さん：特典を使う
+      m = needMember(byUser(ctx.userId));
+      for (var j = 0; j < d.rewards.length; j++) {
+        var r = d.rewards[j];
+        if (String(r.id) === String(req.rewardId) && String(r.userId) === String(m.userId)) {
+          if (r.usedAt) throw new Error('この特典は使用済みです');
+          r.usedAt = ctx.now;
+          db.save(d);
+          db.log({ at: ctx.now, staff: '', no: m.no, type: '特典を使用', amount: '', note: r.title });
+          out = view(m); out.used = { title: r.title, at: ctx.now };
+          return out;
+        }
+      }
+      throw new Error('特典が見つかりません');
+
+    case 'staffGet': // スタッフ：会員を開く
+      needStaff();
+      return staffView(needMember(byNo(req.no)));
+
+    case 'stamp': // スタッフ：来店スタンプ（1日1個）
+      needStaff();
+      m = needMember(byNo(req.no));
+      if (String(m.lastStamp) === ctx.today) throw new Error('今日はもう押してあります');
+      var s = Number(m.stamps) || 0;
+      if (s >= CASA_RULES.goal) s = 0; // いっぱいなら新しい台紙へ
+      s += 1;
+      m.stamps = s; m.visits = (Number(m.visits) || 0) + 1; m.lastStamp = ctx.today;
+      var got = [];
+      for (var k = 0; k < CASA_RULES.milestones.length; k++) {
+        var ms = CASA_RULES.milestones[k];
+        if (ms.at === s) {
+          d.rewards.push({ id: 'r' + Date.now() + '_' + k, userId: m.userId, title: ms.title, issuedAt: ctx.now, usedAt: '' });
+          got.push(ms.title);
+        }
+      }
+      db.save(d);
+      db.log({ at: ctx.now, staff: req.staff || '', no: m.no, type: 'スタンプ', amount: 1, note: got.join('、') });
+      out = staffView(m); out.got = got;
+      return out;
+
+    case 'chip': // スタッフ：チップを預かる（＋）／払い出す（−）
+      needStaff();
+      m = needMember(byNo(req.no));
+      var a = Math.round(Number(req.amount));
+      if (!a || !isFinite(a)) throw new Error('数を入れてください');
+      var next = (Number(m.chips) || 0) + a;
+      if (next < 0) throw new Error('残りが足りません（残り ' + (Number(m.chips) || 0) + '）');
+      m.chips = next;
+      db.save(d);
+      db.log({ at: ctx.now, staff: req.staff || '', no: m.no, type: a > 0 ? '預かり' : '払い出し', amount: a, note: '残り ' + next });
+      return staffView(m);
+  }
+  throw new Error('不明な操作です');
+}
