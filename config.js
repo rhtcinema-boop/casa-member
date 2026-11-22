@@ -1,7 +1,7 @@
 // 本番につなぐときに2つ入れる。空のままだと、この端末の中だけで動く試し用になる。
 var CFG = {
   LIFF_ID: '',  // LINE の LIFF ID
-  GAS_URL: ''   // Apps Script のウェブアプリURL
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbwpBCUXheL0Q91E5E7uUIoMcHcUjY6UxyoaQrtWhQ1p8G6Cj8pghaRjDJj8JsTCam0brg/exec'   // Apps Script のウェブアプリURL
 };
 
 // 画面から呼ぶ窓口。本番は Apps Script、試し用は端末内の保存領域を使う。
