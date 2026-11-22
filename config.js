@@ -4,6 +4,9 @@ var CFG = {
   GAS_URL: 'https://script.google.com/macros/s/AKfycbwpBCUXheL0Q91E5E7uUIoMcHcUjY6UxyoaQrtWhQ1p8G6Cj8pghaRjDJj8JsTCam0brg/exec'   // Apps Script のウェブアプリURL
 };
 
+// 手元で試すとき用: URL の末尾に ?demo=1 を付けると、この端末の中だけで動く。
+if (location.search.indexOf('demo=1') >= 0) { CFG.LIFF_ID = ''; CFG.GAS_URL = ''; }
+
 // 画面から呼ぶ窓口。本番は Apps Script、試し用は端末内の保存領域を使う。
 async function casaApi(req) {
   if (CFG.GAS_URL) {
