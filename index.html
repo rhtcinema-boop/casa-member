@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>会員証</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app" hidden>
+  <div class="card">
+    <div class="info">
+      <img class="logo" src="logo.png" alt="casa">
+      <div class="name" id="name"></div>
+      <div class="no" id="no"></div>
+    </div>
+    <div class="qr" id="qr"></div>
+  </div>
+
+  <h2>チップ</h2>
+  <div class="panel chips"><span>残り</span><b id="chips">0</b></div>
+
+  <h2>スタンプ</h2>
+  <div class="panel">
+    <div class="stamps" id="stamps"></div>
+    <div class="hint" id="hint"></div>
+  </div>
+
+  <h2>特典</h2>
+  <div class="panel" id="rewards"></div>
+</div>
+
+<div class="over" id="ask">
+  <div class="sheet">
+    <h3 id="askTitle"></h3>
+    <p>スタッフの前で押してください。押すと元に戻せません。</p>
+    <div class="row"><button class="ghost" id="askNo">やめる</button><button class="gold" id="askYes">使う</button></div>
+  </div>
+</div>
+<div class="done" id="done">
+  <div class="mark">✓</div>
+  <div class="big" id="doneTitle"></div>
+  <div>使用済み</div>
+  <div class="time" id="doneTime"></div>
+  <button class="ghost" id="doneClose">閉じる</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="core.js"></script>
+<script src="config.js"></script>
+<script>
+var idToken = '', pending = null;
+var $ = function (id) { return document.getElementById(id); };
+
+function toast(msg, kind) {
+  var t = $('toast'); t.textContent = msg; t.className = 'toast show ' + (kind || '');
+  clearTimeout(toast.t); toast.t = setTimeout(function () { t.className = 'toast'; }, 2600);
+}
+function call(req) { req.idToken = idToken; return casaApi(req); }
+
+function render(v) {
+  $('name').textContent = v.name || 'ゲスト';
+  $('no').textContent = 'No. ' + v.no;
+  $('chips').textContent = num(v.chips);
+
+  if ($('qr').dataset.no !== String(v.no)) {
+    var q = qrcode(0, 'M'); q.addData('casa:' + v.no); q.make();
+    $('qr').innerHTML = q.createImgTag(4, 0); $('qr').dataset.no = v.no;
+  }
+
+  var gifts = {}; v.milestones.forEach(function (m) { gifts[m.at] = m.title; });
+  var h = '';
+  for (var i = 1; i <= v.goal; i++) {
+    h += '<div class="st' + (i <= v.stamps ? ' on' : '') + (gifts[i] ? ' gift' : '') + '">' + (i <= v.stamps ? '✓' : i) + '</div>';
+  }
+  $('stamps').innerHTML = h;
+  var next = v.milestones.filter(function (m) { return m.at > v.stamps; })[0];
+  $('hint').textContent = next ? 'あと ' + (next.at - v.stamps) + ' 個で ' + next.title : '次の来店で新しい台紙になります';
+
+  $('rewards').innerHTML = v.rewards.length
+    ? v.rewards.map(function (r) { return '<div class="reward"><div class="t">' + esc(r.title) + '</div><button class="gold" data-id="' + esc(r.id) + '" data-title="' + esc(r.title) + '">使う</button></div>'; }).join('')
+    : '<div class="empty">今使える特典はありません</div>';
+}
+
+$('rewards').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  pending = { id: b.dataset.id, title: b.dataset.title };
+  $('askTitle').textContent = pending.title; $('ask').classList.add('show');
+});
+$('askNo').onclick = function () { $('ask').classList.remove('show'); };
+$('askYes').onclick = async function () {
+  $('askYes').disabled = true;
+  try {
+    var v = await call({ op: 'redeem', rewardId: pending.id });
+    render(v);
+    $('doneTitle').textContent = v.used.title;
+    $('doneTime').textContent = new Date(v.used.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    $('done').classList.add('show');
+  } catch (err) { toast(err.message, 'ng'); }
+  $('ask').classList.remove('show'); $('askYes').disabled = false;
+};
+$('doneClose').onclick = function () { $('done').classList.remove('show'); };
+
+async function refresh() {
+  try { render(await call({ op: 'me' })); $('app').hidden = false; }
+  catch (err) { toast(err.message, 'ng'); }
+}
+// 画面に戻ってきたら最新にする（スタッフが押した直後に反映させるため）
+document.addEventListener('visibilitychange', function () { if (!document.hidden) refresh(); });
+window.addEventListener('focus', refresh);
+
+(async function start() {
+  if (CFG.LIFF_ID) {
+    await new Promise(function (ok, ng) { var s = document.createElement('script'); s.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js'; s.onload = ok; s.onerror = ng; document.head.appendChild(s); });
+    await liff.init({ liffId: CFG.LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    idToken = liff.getIDToken();
+  }
+  refresh();
+})();
+</script>
+</body>
+</html>
