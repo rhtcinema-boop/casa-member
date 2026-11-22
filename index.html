@@ -30,6 +30,13 @@
   <div class="panel" id="rewards"></div>
 </div>
 
+<div id="reg" class="reg" hidden>
+  <img class="logo" src="logo.png" alt="casa">
+  <h1>会員登録</h1>
+  <input id="tel" type="tel" inputmode="numeric" autocomplete="tel" placeholder="電話番号">
+  <button class="gold big-btn" id="regBtn">登録する</button>
+</div>
+
 <div class="over" id="ask">
   <div class="sheet">
     <h3 id="askTitle"></h3>
@@ -103,9 +110,20 @@ $('askYes').onclick = async function () {
 $('doneClose').onclick = function () { $('done').classList.remove('show'); };
 
 async function refresh() {
-  try { render(await call({ op: 'me' })); $('app').hidden = false; }
+  try { show(await call({ op: 'me' })); }
   catch (err) { toast(err.message, 'ng'); }
 }
+function show(v) {
+  $('reg').hidden = !v.needPhone; $('app').hidden = !!v.needPhone;
+  if (!v.needPhone) render(v);
+}
+$('regBtn').onclick = async function () {
+  var tel = $('tel').value.replace(/[^0-9]/g, '');
+  if (!/^0[0-9]{9,10}$/.test(tel)) { toast('電話番号を確かめてください', 'ng'); return; }
+  $('regBtn').disabled = true;
+  try { show(await call({ op: 'me', phone: tel })); } catch (err) { toast(err.message, 'ng'); }
+  $('regBtn').disabled = false;
+};
 // 画面に戻ってきたら最新にする（スタッフが押した直後に反映させるため）
 document.addEventListener('visibilitychange', function () { if (!document.hidden) refresh(); });
 window.addEventListener('focus', refresh);
