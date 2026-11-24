@@ -23,7 +23,7 @@ button:disabled { cursor:default; }
 main { padding:16px; max-width:1180px; margin:0 auto; }
 .view[hidden] { display:none !important; }
 .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; }
-.lbl { font-size:14px; font-weight:700; color:var(--sub); margin:0 0 10px; }
+.lbl { font-size:16px; font-weight:700; color:var(--sub); margin:0 0 10px; }
 
 /* ホーム：来店と退店だけ */
 .home { display:grid; grid-template-columns:1fr 1fr; gap:16px; height:calc(100vh - 110px); min-height:320px; }
@@ -37,7 +37,7 @@ main { padding:16px; max-width:1180px; margin:0 auto; }
 .who { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
 .who .nm { font-size:30px; font-weight:800; }
 .who .no { font-size:16px; color:var(--sub); font-variant-numeric:tabular-nums; }
-.ok { background:#e3f4ea; color:var(--ok); border-radius:999px; padding:3px 10px; font-size:13px; font-weight:800; }
+.ok { background:#e3f4ea; color:var(--ok); border-radius:999px; padding:3px 10px; font-size:15px; font-weight:800; }
 .empty { color:var(--sub); text-align:center; padding:26px 0; font-size:15px; }
 
 .btn { border-radius:12px; padding:14px; font-weight:700; font-size:16px; background:#e8eef8; }
@@ -55,12 +55,6 @@ video { width:100%; border-radius:12px; background:#000; display:none; margin-to
 .kp button { background:var(--key); border:1px solid var(--keyB); border-radius:12px; font-size:24px; font-weight:800; height:58px; }
 .kp button.f { font-size:16px; background:#f3e6c4; }
 
-/* リング／トナメ */
-.kinds { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-.kind { border-radius:16px; border:3px solid var(--line); background:#fff; padding:26px 10px; font-size:30px; font-weight:800; }
-.kind.on.r { border-color:var(--ring); background:#e6efff; color:var(--ring); }
-.kind.on.t { border-color:var(--tn); background:#f1e9ff; color:var(--tn); }
-.kind:disabled { opacity:.45; }
 .why { color:var(--sub); font-size:14px; text-align:center; margin-top:8px; min-height:20px; }
 
 /* 在店一覧 */
@@ -72,7 +66,7 @@ video { width:100%; border-radius:12px; background:#000; display:none; margin-to
 .row .nm { flex:1; min-width:0; font-size:18px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .tag { border-radius:999px; padding:3px 10px; font-size:13px; font-weight:800; color:#fff; flex:none; }
 .tag.r { background:var(--ring); } .tag.t { background:var(--tn); }
-.row .tm { color:var(--sub); font-size:14px; font-variant-numeric:tabular-nums; flex:none; width:92px; text-align:right; }
+.row .tm { color:var(--sub); font-size:15px; font-variant-numeric:tabular-nums; flex:none; width:92px; text-align:right; }
 
 /* 退店の入力 */
 .fields { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
@@ -80,7 +74,9 @@ video { width:100%; border-radius:12px; background:#000; display:none; margin-to
 .fld.on { border-color:var(--pri); background:#eaf2ff; box-shadow:0 0 0 3px rgba(31,111,235,.15); }
 .fld.on small { color:var(--pri); }
 .fld.on small::after { content:" ✎"; }
-.fld small { display:block; font-size:13px; font-weight:700; color:var(--sub); }
+.fld.on b::after { content:""; display:inline-block; width:3px; height:26px; margin-left:3px; vertical-align:-4px; background:var(--pri); animation:blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity:0; } }
+.fld small { display:block; font-size:15px; font-weight:700; color:var(--sub); }
 .fld b { display:block; font-size:24px; text-align:right; font-variant-numeric:tabular-nums; min-height:30px; }
 .sum { display:flex; justify-content:space-between; align-items:baseline; margin:12px 2px 0; font-size:15px; color:var(--sub); }
 .sum b { font-size:22px; color:var(--text); font-variant-numeric:tabular-nums; }
@@ -118,7 +114,7 @@ video { width:100%; border-radius:12px; background:#000; display:none; margin-to
 <main>
   <!-- ホーム -->
   <section class="view home" id="vHome">
-    <button class="tile in" id="toIn">来店<small>QRを読む</small></button>
+    <button class="tile in" id="toIn">来店<small>会員証のQRを読む</small></button>
     <button class="tile out" id="toOut">退店<small id="outSub">在店 0名</small></button>
   </section>
 
@@ -126,20 +122,16 @@ video { width:100%; border-radius:12px; background:#000; display:none; margin-to
   <section class="view" id="vIn" hidden>
     <div class="cols">
       <div class="card">
-        <p class="lbl">お客様</p>
-        <div id="inWho" class="empty">未選択（会員証のQRを読んでください）</div>
-        <button class="btn pri blk big" id="scan" style="margin-top:6px">会員証を読み取る</button>
+        <p class="lbl">会員証を読む</p>
+        <button class="btn pri blk big" id="scan">会員証を読み取る</button>
         <video id="video" playsinline muted></video>
         <p class="lbl" style="margin-top:16px">会員番号で探す</p>
         <div class="disp" id="noDisp"></div>
         <div class="kp" id="kpNo"></div>
       </div>
       <div class="card">
-        <p class="lbl">遊び方</p>
-        <div class="kinds">
-          <button class="kind r" data-k="リング" disabled>リング</button>
-          <button class="kind t" data-k="トナメ" disabled>トナメ</button>
-        </div>
+        <p class="lbl">お客様</p>
+        <div id="inWho" class="empty">未選択（会員証のQRを読んでください）</div>
         <button class="btn pri blk big" id="doIn" style="margin-top:16px" disabled>受付する</button>
         <div class="why" id="inWhy">先にお客様を読み取ってください</div>
       </div>
@@ -163,6 +155,7 @@ video { width:100%; border-radius:12px; background:#000; display:none; margin-to
           </div>
           <div class="kp" id="kpOut"></div>
           <div class="sum"><span>収支（アウト − 総イン）</span><b id="pl">0</b></div>
+          <div class="sum"><span>預入チップ</span><b id="chipAfter">0</b></div>
           <button class="btn pri blk big" id="doOut" style="margin-top:14px">これで登録</button>
           <div class="why" id="outWhy"></div>
         </div>
@@ -188,7 +181,7 @@ video { width:100%; border-radius:12px; background:#000; display:none; margin-to
 var $ = function (id) { return document.getElementById(id); };
 var DEMO = location.search.indexOf('demo=1') >= 0;
 var STORE_NAME = CASA_STORE_ID === 'sapporo' ? 'casa札幌' : 'casa渋谷';
-var present = [], cur = null, kind = '', noBuf = '', sel = null, vals = { buyin: '', out: '', bounty: '' }, fld = 'buyin', stream = null;
+var present = [], cur = null, noBuf = '', sel = null, vals = { buyin: '', out: '', bounty: '' }, fld = 'buyin', stream = null;
 
 function toast(msg, kind) { var t = $('toast'); t.textContent = msg; t.className = 'toast show ' + (kind || ''); clearTimeout(toast.t); toast.t = setTimeout(function () { t.className = 'toast'; }, 2600); }
 function call(req) { req.pass = $('pass').value; req.staff = $('staff').value.trim(); return casaApi(req); }
@@ -228,32 +221,30 @@ async function refresh() {
 function drawCount() { $('cnt').textContent = '在店 ' + present.length + '名'; $('outSub').textContent = '在店 ' + present.length + '名'; }
 
 /* ---------- 来店 ---------- */
-function resetIn() { cur = null; kind = ''; noBuf = ''; drawIn(); }
+function resetIn() { cur = null; noBuf = ''; drawIn(); }
 function drawIn() {
   $('noDisp').textContent = noBuf;
   var inside = cur && present.some(function (p) { return p.no === cur.no; });
   $('inWho').className = cur ? 'who' : 'empty';
   $('inWho').innerHTML = cur ? '<span class="nm">' + esc(cur.name || 'ゲスト') + '</span><span class="no">No. ' + cur.no + '</span><span class="ok">✓ 確認済み</span>' : '未選択（会員証のQRを読んでください）';
-  document.querySelectorAll('.kind').forEach(function (b) { b.disabled = !cur || inside; b.classList.toggle('on', b.dataset.k === kind); });
-  $('doIn').disabled = !cur || !kind || inside;
-  $('inWhy').textContent = !cur ? '先にお客様を読み取ってください' : inside ? 'この方はもう在店中です' : !kind ? 'リングかトナメを選んでください' : '';
+  $('doIn').disabled = !cur || inside;
+  $('inWhy').textContent = !cur ? '先にお客様を読み取ってください' : inside ? 'この方はもう在店中です' : '';
 }
-document.querySelectorAll('.kind').forEach(function (b) { b.onclick = function () { kind = b.dataset.k; drawIn(); }; });
 keypad($('kpNo'), function (k) {
   if (k === '←') noBuf = noBuf.slice(0, -1); else if (k === 'クリア') noBuf = ''; else if (k === '検索する') { openNo(noBuf); return; } else if (noBuf.length < 6) noBuf += k;
   drawIn();
 }, '検索する');
 async function openNo(no) {
   if (!no) { toast('会員番号を入れてください', 'ng'); return; }
-  try { var v = await call({ op: 'staffGet', no: no }); cur = { no: v.no, name: v.name }; kind = ''; noBuf = ''; drawIn(); }
+  try { var v = await call({ op: 'staffGet', no: no }); cur = { no: v.no, name: v.name }; noBuf = ''; drawIn(); }
   catch (e) { toast(e.message, 'ng'); }
 }
 $('doIn').onclick = async function () {
   $('doIn').disabled = true;
   try {
-    var r = await call({ op: 'arrive', no: cur.no, kind: kind });
+    var r = await call({ op: 'arrive', no: cur.no });
     present = r.present; drawCount();
-    toast((r.name || 'ゲスト') + ' 様　' + kind + 'で受付しました', 'ok');
+    toast((r.name || 'ゲスト') + ' 様を受付しました', 'ok');
     resetIn(); show('vHome');
   } catch (e) { toast(e.message, 'ng'); drawIn(); }
 };
@@ -285,11 +276,11 @@ $('scan').onclick = async function () {
 /* ---------- 退店 ---------- */
 function drawOut() {
   $('list').innerHTML = present.length ? present.map(function (p) {
-    return '<button class="row' + (sel && sel.id === p.id ? ' on' : '') + '" data-id="' + esc(p.id) + '"><span class="n">' + p.no + '</span><span class="nm">' + esc(p.name) + '</span><span class="tag ' + (p.kind === 'トナメ' ? 't' : 'r') + '">' + esc(p.kind) + '</span><span class="tm">' + hm(p.inAt) + '〜<br>' + since(p.inAt) + '</span></button>';
+    return '<button class="row' + (sel && sel.id === p.id ? ' on' : '') + '" data-id="' + esc(p.id) + '"><span class="n">' + p.no + '</span><span class="nm">' + esc(p.name) + '</span><span class="tm">' + hm(p.inAt) + '〜<br>' + since(p.inAt) + '</span></button>';
   }).join('') : '<div class="empty">在店中の方はいません</div>';
   $('outForm').hidden = !sel;
   $('outWho').className = sel ? 'who' : 'empty';
-  $('outWho').innerHTML = sel ? '<span class="nm">' + esc(sel.name) + '</span><span class="no">No. ' + sel.no + '</span><span class="tag ' + (sel.kind === 'トナメ' ? 't' : 'r') + '">' + esc(sel.kind) + '</span>' : '左の一覧から選んでください';
+  $('outWho').innerHTML = sel ? '<span class="nm">' + esc(sel.name) + '</span><span class="no">No. ' + sel.no + '</span>' : '左の一覧から選んでください';
   if (sel) drawVals();
 }
 $('list').onclick = function (e) {
@@ -305,14 +296,17 @@ function drawVals() {
   $('pl').textContent = (pl > 0 ? '+' : pl < 0 ? '−' : '') + num(Math.abs(pl));
   $('pl').className = pl > 0 ? 'plus' : pl < 0 ? 'minus' : '';
   var miss = vals.buyin === '' ? '総イン額' : vals.out === '' ? 'アウト額' : '';
-  $('doOut').disabled = !!miss;
-  $('outWhy').textContent = miss ? miss + 'を入れてください（0 なら 0 を押す）' : '';
-  if (actKey) actKey.textContent = fld === 'bounty' ? '入力完了' : '次へ';
+  var after = sel.chips + pl;
+  $('chipAfter').textContent = num(sel.chips) + ' → ' + (after < 0 ? '−' : '') + num(Math.abs(after));
+  $('chipAfter').className = after < 0 ? 'minus' : '';
+  $('doOut').disabled = !!miss || after < 0;
+  $('outWhy').textContent = miss ? miss + 'を入れてください（0 なら 0 を押す）' : after < 0 ? '預入チップが足りません（残り ' + num(sel.chips) + '）' : '';
+  if (actKey) actKey.textContent = fld === 'buyin' ? '次へ（アウト額）' : fld === 'out' ? '次へ（バウンティ数）' : fld === 'bounty' ? '入力完了' : '総イン額から入れ直す';
 }
 var actKey = null;
 actKey = keypad($('kpOut'), function (k) {
   var v = fld ? vals[fld] : '';
-  if (k === '←') v = v.slice(0, -1); else if (k === 'クリア') v = ''; else if (k === '次へ' || k === '入力完了') { if (fld === 'bounty') { $('doOut').focus(); fld = ''; } else fld = fld === 'buyin' ? 'out' : 'bounty'; drawVals(); return; }
+  if (k === '←') v = v.slice(0, -1); else if (k === 'クリア') v = ''; else if (k.indexOf('次へ') === 0 || k === '入力完了' || k === '総イン額から入れ直す') { fld = fld === 'buyin' ? 'out' : fld === 'out' ? 'bounty' : fld === 'bounty' ? '' : 'buyin'; drawVals(); return; }
   else if (!fld) return;
   else if (v.length < 9) v = (v === '0' ? '' : v) + k;
   vals[fld] = v; drawVals();
