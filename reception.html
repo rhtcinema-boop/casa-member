@@ -108,7 +108,6 @@ video { width:100%; border-radius:12px; background:#000; display:none; margin-to
   <div class="ttl"><b id="ttl">ホーム</b><small id="sub"></small></div>
   <span class="demo" id="demoTag" hidden>デモ</span>
   <span class="cnt" id="cnt">在店 0名</span>
-  <button class="ib" id="gear" aria-label="スタッフ設定">⚙</button>
 </header>
 
 <main>
@@ -166,10 +165,9 @@ video { width:100%; border-radius:12px; background:#000; display:none; margin-to
 
 <div class="over" id="setSheet">
   <div class="sheet">
-    <h3>スタッフ</h3>
-    <input id="staff" placeholder="名前" autocomplete="off">
+    <h3>受付の合言葉</h3>
     <input id="pass" placeholder="合言葉" type="password" inputmode="numeric" autocomplete="off">
-    <div class="rowb"><button class="btn pri" id="setOk">閉じる</button></div>
+    <div class="rowb"><button class="btn pri" id="setOk">はじめる</button></div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -183,22 +181,22 @@ var STORE_NAME = CASA_STORE_ID === 'sapporo' ? 'casa札幌' : 'casa渋谷';
 var present = [], cur = null, noBuf = '', sel = null, vals = { buyin: '', out: '', bounty: '' }, fld = 'buyin', stream = null;
 
 function toast(msg, kind) { var t = $('toast'); t.textContent = msg; t.className = 'toast show ' + (kind || ''); clearTimeout(toast.t); toast.t = setTimeout(function () { t.className = 'toast'; }, 2600); }
-function call(req) { req.pass = $('pass').value; req.staff = $('staff').value.trim(); return casaApi(req); }
+function call(req) { req.pass = $('pass').value; return casaApi(req).catch(function (e) { if (/合言葉/.test(e.message)) askPass(); throw e; }); }
 function hm(iso) { var d = new Date(iso); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
 function since(iso) { var m = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000)); return m < 60 ? m + '分' : Math.floor(m / 60) + '時間' + (m % 60) + '分'; }
 
-// スタッフ名と合言葉（端末に覚える）。デモは最初から入れておく
-['staff', 'pass'].forEach(function (k) {
-  try { $(k).value = localStorage.getItem('casaStaff_' + k) || ''; } catch (e) {}
-  $(k).addEventListener('change', function () { try { localStorage.setItem('casaStaff_' + k, $(k).value); } catch (e) {} });
-});
-if (DEMO) { $('demoTag').hidden = false; if (!$('staff').value) $('staff').value = 'デモ'; $('pass').value = '0000'; }
-$('gear').onclick = function () { $('setSheet').classList.add('show'); };
-$('setOk').onclick = function () { $('setSheet').classList.remove('show'); refresh(); };
-function needStaff() {
-  if ($('staff').value.trim() && $('pass').value) return true;
-  $('setSheet').classList.add('show'); toast('名前と合言葉を入れてください', 'ng'); return false;
-}
+// 合言葉は本番の初回（と違っていた時）だけ聞いて、この端末で覚えておく。設定画面は無い。デモは最初から入れておく
+try { $('pass').value = localStorage.getItem('casaStaff_pass') || ''; } catch (e) {}
+if (DEMO) { $('demoTag').hidden = false; $('pass').value = '0000'; }
+function askPass() { if (DEMO) return; $('pass').value = ''; $('setSheet').classList.add('show'); setTimeout(function () { $('pass').focus(); }, 50); }
+$('setOk').onclick = function () {
+  if (!$('pass').value) { toast('合言葉を入れてください', 'ng'); return; }
+  try { localStorage.setItem('casaStaff_pass', $('pass').value); } catch (e) {}
+  $('setSheet').classList.remove('show'); refresh();
+};
+$('pass').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('setOk').click(); });
+function needStaff() { if ($('pass').value) return true; askPass(); return false; }
+if (!$('pass').value) askPass();
 
 var now = new Date();
 $('sub').textContent = STORE_NAME + '／' + (now.getMonth() + 1) + '月' + now.getDate() + '日(' + '日月火水木金土'[now.getDay()] + ')';
@@ -213,7 +211,7 @@ $('toIn').onclick = function () { if (!needStaff()) return; resetIn(); show('vIn
 $('toOut').onclick = function () { if (!needStaff()) return; sel = null; drawOut(); show('vOut'); refresh(); };
 
 async function refresh() {
-  if (!$('staff').value.trim() || !$('pass').value) return;
+  if (!$('pass').value) return;
   try { present = (await call({ op: 'present' })).present; drawCount(); if (!$('vOut').hidden) drawOut(); }
   catch (e) { toast(e.message, 'ng'); }
 }
