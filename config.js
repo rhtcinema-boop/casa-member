@@ -10,6 +10,15 @@ var CASA_STORE_ID = (typeof CASA_STORE === 'string') ? CASA_STORE : '';
 if (CASA_STORE_ID === 'sapporo') document.documentElement.classList.add('no-stamp');
 if (CASA_STORE_ID === 'sapporo') CFG.LIFF_ID = '2012748533-jNeqsZC5'; // 札幌用 LIFF（casa札幌 会員証）
 
+// 会員証QRの中身。渋谷は casa:1001（前からの形のまま）、札幌は casa-sapporo:1001。店をまたいで読んだら止める。
+var QR_PREFIX = CASA_STORE_ID ? 'casa-' + CASA_STORE_ID + ':' : 'casa:';
+function readMemberQr(text) {
+  var m = /^casa(?:-([a-z]+))?:(\d+)$/.exec(String(text || ''));
+  if (!m) return null;
+  if ((m[1] || '') !== CASA_STORE_ID) return { other: true };
+  return { no: m[2] };
+}
+
 // 画面の出し分け。?view=rank はランキングだけ。札幌はメニューが2つ（会員証／ランキング）なので、会員証の側ではランキングを出さない。
 // LINE の中では最初 ?liff.state=%3Fview%3Drank の形で来るので、そちらも見る。
 var CASA_VIEW = (function () {
