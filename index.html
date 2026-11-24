@@ -17,8 +17,17 @@
     <div class="qr" id="qr"></div>
   </div>
 
-  <h2>チップ</h2>
+  <h2>預入チップ</h2>
   <div class="panel chips"><span>残り</span><b id="chips">0</b></div>
+
+  <h2>RING BOUNTY</h2>
+  <div class="panel chips"><span id="myRank"></span><b id="bounty">0</b></div>
+
+  <h2>ランキング</h2>
+  <div class="panel rankbox" id="rank"></div>
+
+  <h2>チップの増減</h2>
+  <div class="panel" id="moves"></div>
 
   <h2>スタンプ</h2>
   <div class="panel">
@@ -70,6 +79,27 @@ function render(v) {
   $('name').textContent = v.name || 'ゲスト';
   $('no').textContent = 'No. ' + v.no;
   $('chips').textContent = num(v.chips);
+  $('bounty').textContent = num(v.bounty);
+  $('myRank').textContent = v.myRank ? v.myRank + ' 位' : '';
+  var CROWN = '<svg class="crown" viewBox="0 0 48 34" aria-hidden="true"><path d="M4 30h40l3-22-12 9L24 2 13 17 1 8z"/></svg>';
+  var pod = v.ranking.slice(0, 3), rest = v.ranking.slice(3);
+  function podCell(r, i) {
+    if (!r) return '<div class="pd p' + (i + 1) + ' none"></div>';
+    return '<div class="pd p' + (i + 1) + (r.me ? ' me' : '') + '">' + (i === 0 ? CROWN : '') +
+      '<div class="medal">' + r.rank + '</div><div class="nm">' + esc(r.name) + '</div>' +
+      '<div class="pts"><b>' + num(r.bounty) + '</b><small>BOUNTY</small></div><div class="base"></div></div>';
+  }
+  $('rank').innerHTML = v.ranking.length
+    ? '<div class="podium">' + podCell(pod[1], 1) + podCell(pod[0], 0) + podCell(pod[2], 2) + '</div>' +
+      rest.map(function (r) {
+        return '<div class="rk' + (r.me ? ' me' : '') + '"><span class="pos">' + r.rank + '</span><span class="nm">' + esc(r.name) + (r.me ? '<i>あなた</i>' : '') + '</span><b>' + num(r.bounty) + '</b></div>';
+      }).join('')
+    : '<div class="empty">まだありません</div>';
+  $('moves').innerHTML = v.moves.length ? v.moves.map(function (x) {
+    var d = new Date(x.at), a = Number(x.amount);
+    var when = (d.getMonth() + 1) + '/' + d.getDate() + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+    return '<div class="h"><span class="when">' + when + '</span><span class="ty">' + esc(x.type) + '<small>' + esc(String(x.note).replace(/\d+/, function (n) { return num(n); })) + '</small></span><b class="' + (a > 0 ? 'plus' : 'minus') + '">' + (a > 0 ? '+' : '−') + num(Math.abs(a)) + '</b></div>';
+  }).join('') : '<div class="empty">まだありません</div>';
 
   if ($('qr').dataset.no !== String(v.no)) {
     var q = qrcode(0, 'M'); q.addData('casa:' + v.no); q.make();
@@ -83,7 +113,7 @@ function render(v) {
   }
   $('stamps').innerHTML = h;
   var next = v.milestones.filter(function (m) { return m.at > v.stamps; })[0];
-  $('hint').textContent = next ? 'あと ' + (next.at - v.stamps) + ' 個で ' + next.title : '次の来店で新しい台紙になります';
+  $('hint').innerHTML = next ? '<b>あと ' + (next.at - v.stamps) + ' 個</b>で ' + esc(next.title) : '次の来店で新しい台紙になります';
 
   $('rewards').innerHTML = v.rewards.length
     ? v.rewards.map(function (r) { return '<div class="reward"><div class="t">' + esc(r.title) + '</div><button class="gold" data-id="' + esc(r.id) + '" data-title="' + esc(r.title) + '">使う</button></div>'; }).join('')
