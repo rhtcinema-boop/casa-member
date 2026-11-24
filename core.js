@@ -30,8 +30,23 @@ function casaHandle(req, db, ctx) {
       var r = d.rewards[i];
       if (String(r.userId) === String(m.userId) && !r.usedAt) open.push({ id: String(r.id), title: r.title, issuedAt: r.issuedAt });
     }
+    // ランキング（Ring Bounty の多い順。同じ数は同じ順位）
+    var list = d.members.filter(function (x) { return Number(x.bounty) > 0; })
+      .sort(function (a, b) { return Number(b.bounty) - Number(a.bounty) || Number(a.no) - Number(b.no); });
+    var rank = [], myRank = 0;
+    for (var q = 0; q < list.length; q++) {
+      var pos = q > 0 && Number(list[q].bounty) === Number(list[q - 1].bounty) ? rank[q - 1].rank : q + 1;
+      var mine = String(list[q].userId) === String(m.userId);
+      if (mine) myRank = pos;
+      rank.push({ rank: pos, name: list[q].name || 'ゲスト', bounty: Number(list[q].bounty), me: mine });
+    }
+    var top = rank.filter(function (x, idx) { return idx < 10 || x.me; });
+    // チップの増減（自分の預かり・払い出しだけ）
+    var moves = db.history(m.no, 60).filter(function (x) { return x.type === '預かり' || x.type === '払い出し'; }).slice(0, 20)
+      .map(function (x) { return { at: x.at, type: x.type, amount: Number(x.amount), note: x.note }; });
     return {
       no: Number(m.no), name: m.name, chips: Number(m.chips) || 0,
+      bounty: Number(m.bounty) || 0, myRank: myRank, ranking: top, moves: moves,
       stamps: Number(m.stamps) || 0, visits: Number(m.visits) || 0,
       stampedToday: String(m.lastStamp) === ctx.today,
       goal: CASA_RULES.goal, milestones: CASA_RULES.milestones, rewards: open
@@ -55,7 +70,7 @@ function casaHandle(req, db, ctx) {
       if (!m) {
         var max = 1000;
         for (var i = 0; i < d.members.length; i++) max = Math.max(max, Number(d.members[i].no) || 0);
-        m = { userId: ctx.userId, no: max + 1, name: ctx.name || '', chips: 0, stamps: 0, visits: 0, lastStamp: '', createdAt: ctx.now, phone: phone };
+        m = { userId: ctx.userId, no: max + 1, name: ctx.name || '', chips: 0, stamps: 0, visits: 0, lastStamp: '', createdAt: ctx.now, phone: phone, bounty: 0 };
         d.members.push(m);
         db.save(d);
         db.log({ at: ctx.now, staff: '', no: m.no, type: '登録', amount: '', note: '' });
@@ -112,6 +127,18 @@ function casaHandle(req, db, ctx) {
       m.chips = next;
       db.save(d);
       db.log({ at: ctx.now, staff: req.staff || '', no: m.no, type: a > 0 ? '預かり' : '払い出し', amount: a, note: '残り ' + next });
+      return staffView(m);
+
+    case 'bounty': // スタッフ：Ring Bounty を足す（＋）／引く（−）
+      needStaff();
+      m = needMember(byNo(req.no));
+      var b = Math.round(Number(req.amount));
+      if (!b || !isFinite(b)) throw new Error('数を入れてください');
+      var nb = (Number(m.bounty) || 0) + b;
+      if (nb < 0) throw new Error('Bounty が足りません（今 ' + (Number(m.bounty) || 0) + '）');
+      m.bounty = nb;
+      db.save(d);
+      db.log({ at: ctx.now, staff: req.staff || '', no: m.no, type: 'Bounty', amount: b, note: '合計 ' + nb });
       return staffView(m);
   }
   throw new Error('不明な操作です');
