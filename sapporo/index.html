@@ -103,7 +103,7 @@ function render(v) {
   }).join('') : '<div class="empty">まだありません</div>';
 
   if ($('qr').dataset.no !== String(v.no)) {
-    var q = qrcode(0, 'M'); q.addData('casa:' + v.no); q.make();
+    var q = qrcode(0, 'M'); q.addData(QR_PREFIX + v.no); q.make();
     $('qr').innerHTML = q.createImgTag(8, 0); $('qr').firstChild.alt = '会員証のQRコード No. ' + v.no; $('qr').dataset.no = v.no;
   }
 
