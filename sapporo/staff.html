@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>会員証 スタッフ用</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body class="staff">
+<div class="cols"><div>
+<h2>スタッフ</h2>
+<div class="panel row">
+  <input id="staff" placeholder="名前" autocomplete="off">
+  <input id="pass" placeholder="合言葉" type="password" inputmode="numeric" autocomplete="off">
+</div>
+
+<h2>会員を開く</h2>
+<div class="panel stack">
+  <button class="gold big-btn" id="scan">会員証を読み取る</button>
+  <video id="video" playsinline muted></video>
+  <div class="row"><input id="noIn" placeholder="会員番号" inputmode="numeric"><button class="ghost" id="open" style="flex:none;padding:0 22px">開く</button></div>
+</div>
+
+<div id="member" hidden>
+  <h2>会員</h2>
+  <div class="panel">
+    <div class="who"><span class="name" id="name"></span><span class="no" id="no"></span></div>
+    <div class="tel" id="tel"></div>
+    <div class="kv" style="margin-top:12px"><span>チップ残り</span><b id="chips"></b></div>
+    <div class="kv"><span>Ring Bounty</span><b id="bounty"></b></div>
+    <div class="kv"><span>スタンプ</span><b id="stamps"></b></div>
+    <div class="kv"><span>使える特典</span><b id="rw"></b></div>
+  </div>
+
+  <h2>来店</h2>
+  <button class="gold big-btn" id="stamp">スタンプを押す</button>
+
+  <h2>チップ</h2>
+  <div class="panel stack">
+    <input id="amt" placeholder="数" inputmode="numeric">
+    <div class="row"><button class="big-btn in" id="in">預かる ＋</button><button class="big-btn out" id="outB">払い出す −</button></div>
+  </div>
+
+  <h2>RING BOUNTY</h2>
+  <div class="row"><button class="big-btn in" id="bPlus">＋1</button><button class="big-btn out" id="bMinus">−1</button></div>
+</div>
+</div><div id="histCol" hidden>
+  <h2>履歴</h2>
+  <div class="panel" id="hist"></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>var CASA_STORE = "sapporo";</script>
+<script src="../core.js"></script>
+<script src="../config.js"></script>
+<script>
+var cur = null, stream = null;
+var $ = function (id) { return document.getElementById(id); };
+['staff', 'pass'].forEach(function (k) {
+  try { $(k).value = localStorage.getItem('casaStaff_' + k) || ''; } catch (e) {}
+  $(k).addEventListener('change', function () { try { localStorage.setItem('casaStaff_' + k, $(k).value); } catch (e) {} });
+});
+
+function toast(msg, kind) {
+  var t = $('toast'); t.textContent = msg; t.className = 'toast show ' + (kind || '');
+  clearTimeout(toast.t); toast.t = setTimeout(function () { t.className = 'toast'; }, 2600);
+}
+function call(req) { req.pass = $('pass').value; req.staff = $('staff').value.trim(); return casaApi(req); }
+
+function render(v) {
+  cur = v; $('member').hidden = false;
+  $('name').textContent = v.name || 'ゲスト'; $('no').textContent = 'No. ' + v.no;
+  $('tel').textContent = v.phone || '';
+  $('chips').textContent = num(v.chips);
+  $('bounty').textContent = num(v.bounty);
+  $('stamps').textContent = v.stamps + ' / ' + v.goal;
+  $('rw').textContent = v.rewards.length;
+  $('histCol').hidden = false;
+  $('hist').innerHTML = (v.history || []).length ? v.history.map(function (x) {
+    var d = new Date(x.at), a = Number(x.amount);
+    var when = (d.getMonth() + 1) + '/' + d.getDate() + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+    var val = x.type === '預かり' || x.type === '払い出し' || x.type === 'Bounty' ? '<b class="' + (a > 0 ? 'plus' : 'minus') + '">' + (a > 0 ? '+' : '−') + num(Math.abs(a)) + '</b>' : '';
+    return '<div class="h"><span class="when">' + when + '</span><span class="ty">' + esc(x.type) + (x.note ? '<small>' + esc(x.note) + '</small>' : '') + '</span>' + val + '<span class="by">' + esc(x.staff) + '</span></div>';
+  }).join('') : '<div class="empty">まだ履歴がありません</div>';
+  $('stamp').disabled = v.stampedToday;
+  $('stamp').textContent = v.stampedToday ? '今日は押印済み' : 'スタンプを押す';
+}
+async function run(req, okMsg) {
+  if (!$('staff').value.trim()) { toast('名前を入れてください', 'ng'); return; }
+  try { var v = await call(req); render(v); if (okMsg) toast(typeof okMsg === 'function' ? okMsg(v) : okMsg, 'ok'); return v; }
+  catch (err) { toast(err.message, 'ng'); }
+}
+function openNo(no) { $('noIn').value = String(no).replace(/[^0-9]/g, ''); return run({ op: 'staffGet', no: no }); }
+
+$('open').onclick = function () { openNo($('noIn').value); };
+$('noIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') openNo($('noIn').value); });
+$('stamp').onclick = function () {
+  run({ op: 'stamp', no: cur.no }, function (v) { return v.got && v.got.length ? '押しました　特典：' + v.got.join('、') : '押しました'; });
+};
+function chip(sign) {
+  var a = Math.abs(Math.round(Number($('amt').value)));
+  if (!a) { toast('数を入れてください', 'ng'); return; }
+  if (!confirm((sign > 0 ? '預かる ＋' : '払い出す −') + num(a) + '\n' + (cur.name || 'ゲスト') + '（No. ' + cur.no + '）')) return;
+  run({ op: 'chip', no: cur.no, amount: sign * a }, '記録しました').then(function (v) { if (v) $('amt').value = ''; });
+}
+$('bPlus').onclick = function () { run({ op: 'bounty', no: cur.no, amount: 1 }, '記録しました'); };
+$('bMinus').onclick = function () { if (confirm('Ring Bounty −1\n' + (cur.name || 'ゲスト') + '（No. ' + cur.no + '）')) run({ op: 'bounty', no: cur.no, amount: -1 }, '記録しました'); };
+$('in').onclick = function () { chip(1); };
+$('outB').onclick = function () { chip(-1); };
+
+// 会員証のQRをカメラで読む
+function stopScan() {
+  if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
+  stream = null; $('video').style.display = 'none'; $('scan').textContent = '会員証を読み取る';
+}
+$('scan').onclick = async function () {
+  if (stream) { stopScan(); return; }
+  try {
+    if (!window.jsQR) await new Promise(function (ok, ng) { var s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js'; s.onload = ok; s.onerror = ng; document.head.appendChild(s); });
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+  } catch (e) { toast('カメラを使えません。番号で開いてください', 'ng'); return; }
+  var v = $('video'); v.srcObject = stream; v.style.display = 'block'; await v.play();
+  $('scan').textContent = '読み取りをやめる';
+  var c = document.createElement('canvas'), g = c.getContext('2d', { willReadFrequently: true });
+  (function tick() {
+    if (!stream) return;
+    if (v.videoWidth) {
+      c.width = v.videoWidth; c.height = v.videoHeight; g.drawImage(v, 0, 0);
+      var r = jsQR(g.getImageData(0, 0, c.width, c.height).data, c.width, c.height);
+      var m = r && /^casa:(\d+)$/.exec(r.data);
+      if (m) { stopScan(); openNo(m[1]); return; }
+    }
+    requestAnimationFrame(tick);
+  })();
+};
+</script>
+</body>
+</html>
