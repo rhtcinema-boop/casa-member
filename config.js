@@ -8,6 +8,8 @@ var CFG = {
 var CASA_STORE_ID = (typeof CASA_STORE === 'string') ? CASA_STORE : '';
 // スタンプと特典は使わない（札幌・渋谷とも。2026-11-24 オーナー指定）。style.css の .no-stamp が欄を隠す。
 document.documentElement.classList.add('no-stamp');
+// 渋谷は札幌より明るい青（2026-11-24 オーナー指定）。style.css の .shop-shibuya。
+if (!CASA_STORE_ID) document.documentElement.classList.add('shop-shibuya');
 if (CASA_STORE_ID === 'sapporo') CFG.LIFF_ID = '2012748533-jNeqsZC5'; // 札幌用 LIFF（casa札幌 会員証）
 
 // 会員証QRの中身。渋谷は casa:1001（前からの形のまま）、札幌は casa-sapporo:1001。店をまたいで読んだら止める。
