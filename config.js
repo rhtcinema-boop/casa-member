@@ -46,7 +46,7 @@ async function casaApi(req) {
   }
   var KEY = 'casaMemberDemo' + CASA_STORE_ID;
   var db = {
-    load: function () { try { return JSON.parse(localStorage.getItem(KEY)) || { members: [], rewards: [] }; } catch (e) { return { members: [], rewards: [] }; } },
+    load: function () { try { return JSON.parse(localStorage.getItem(KEY)) || { members: [], rewards: [], visits: [] }; } catch (e) { return { members: [], rewards: [], visits: [] }; } },
     save: function (d) { localStorage.setItem(KEY, JSON.stringify(d)); },
     log: function (x) { var l = db.all(); l.push(x); localStorage.setItem(KEY + 'Log', JSON.stringify(l)); },
     all: function () { try { return JSON.parse(localStorage.getItem(KEY + 'Log')) || []; } catch (e) { return []; } },
@@ -54,7 +54,12 @@ async function casaApi(req) {
   };
   if (!localStorage.getItem(KEY)) { // 試し用の見本データ（名前は作り物）
     var names = ['ゲスト', 'たなか', 'SATO', 'みやび', 'K.Yamada', 'りく', 'NOBU', 'あおい'], bs = [7, 12, 9, 7, 5, 3, 2, 1];
-    db.save({ rewards: [], members: names.map(function (n, i) {
+    var ago = function (mi) { return new Date(Date.now() - mi * 60000).toISOString(); };
+    db.save({ rewards: [], visits: [
+      { id: 'v1', no: 1002, kind: 'リング', inAt: ago(150), outAt: '', buyin: '', out: '', bounty: '', staff: '見本' },
+      { id: 'v2', no: 1003, kind: 'トナメ', inAt: ago(95), outAt: '', buyin: '', out: '', bounty: '', staff: '見本' },
+      { id: 'v3', no: 1005, kind: 'リング', inAt: ago(40), outAt: '', buyin: '', out: '', bounty: '', staff: '見本' }
+    ], members: names.map(function (n, i) {
       return { userId: i ? 'demo-' + i : 'demo-user', no: 1001 + i, name: n, chips: i ? 0 : 48000, stamps: i ? 0 : 2, visits: i ? 0 : 2, lastStamp: '', createdAt: '', phone: '0900000000' + i, bounty: bs[i] };
     }) });
     [[6, 30000, '預かり', 30000], [4, -12000, '払い出し', 18000], [2, 45000, '預かり', 63000], [1, -15000, '払い出し', 48000]].forEach(function (x) {
