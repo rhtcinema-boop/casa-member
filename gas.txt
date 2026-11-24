@@ -8,6 +8,7 @@ var COLS = {
   members: ['userId', 'no', 'name', 'chips', 'stamps', 'visits', 'lastStamp', 'createdAt', 'phone', 'bounty'],
   rewards: ['id', 'userId', 'title', 'issuedAt', 'usedAt'],
   log: ['at', 'staff', 'no', 'type', 'amount', 'note'],
+  visits: ['id', 'no', 'kind', 'inAt', 'outAt', 'buyin', 'out', 'bounty', 'staff'],
   settings: ['key', 'value']
 };
 
@@ -63,8 +64,8 @@ function doPost(e) {
       if (j.sub) { ctx.userId = j.sub; ctx.name = j.name || ''; }
     }
     var db = {
-      load: function () { return { members: read_('members'), rewards: read_('rewards') }; },
-      save: function (d) { write_('members', d.members); write_('rewards', d.rewards); },
+      load: function () { return { members: read_('members'), rewards: read_('rewards'), visits: read_('visits') }; },
+      save: function (d) { write_('members', d.members); write_('rewards', d.rewards); write_('visits', d.visits || []); },
       history: function (no, n) { // 新しい順に n 件
         var v = sheet_('log').getDataRange().getValues(), out = [];
         for (var i = v.length - 1; i >= 1 && out.length < n; i--) {
@@ -92,6 +93,8 @@ function setup() { ['members', 'rewards', 'log', 'settings'].forEach(sheet_); Ur
 // ブラウザの試し用（demo）と Apps Script（本番）で、このファイルをそのまま両方に入れて使う。
 
 var CASA_RULES = {
+  // 退店の時に、預入チップを「アウト − 総イン」だけ増減させるか（オーナー確認待ち。決まるまで false）
+  chipOnLeave: false,
   goal: 10, // スタンプ何個で1枚たまるか
   // 何個目で特典が出るか（2026-11-22 オーナー指定）
   milestones: [
@@ -103,7 +106,8 @@ var CASA_RULES = {
 
 // req: {op, ...} / db: {load(), save(data), log(entry), history(no, n)} / ctx: {now, today, userId, name, isStaff}
 function casaHandle(req, db, ctx) {
-  var d = db.load(); // {members: [], rewards: []}
+  var d = db.load(); // {members: [], rewards: [], visits: []}
+  d.visits = d.visits || [];
 
   function byUser(id) {
     for (var i = 0; i < d.members.length; i++) if (String(d.members[i].userId) === String(id)) return d.members[i];
@@ -132,7 +136,7 @@ function casaHandle(req, db, ctx) {
     }
     var top = rank.filter(function (x, idx) { return idx < 10 || x.me; });
     // チップの増減（自分の預かり・払い出しだけ）
-    var moves = db.history(m.no, 60).filter(function (x) { return x.type === '預かり' || x.type === '払い出し'; }).slice(0, 20)
+    var moves = db.history(m.no, 60).filter(function (x) { return x.type === '預かり' || x.type === '払い出し' || (x.type === '退店' && CASA_RULES.chipOnLeave); }).slice(0, 20)
       .map(function (x) { return { at: x.at, type: x.type, amount: Number(x.amount), note: x.note }; });
     return {
       no: Number(m.no), name: m.name, chips: Number(m.chips) || 0,
@@ -143,6 +147,15 @@ function casaHandle(req, db, ctx) {
     };
   }
   function staffView(m) { var o = view(m); o.phone = String(m.phone || ''); o.history = db.history(m.no, 30); return o; }
+  function presentList() { // 在店中の人（来店の古い順）
+    var out = [];
+    for (var i = 0; i < d.visits.length; i++) {
+      var v = d.visits[i]; if (v.outAt) continue;
+      var mm = byNo(v.no);
+      out.push({ id: String(v.id), no: Number(v.no), name: mm ? (mm.name || 'ゲスト') : '?', kind: v.kind, inAt: v.inAt, chips: mm ? Number(mm.chips) || 0 : 0 });
+    }
+    return out.sort(function (a, b) { return String(a.inAt) < String(b.inAt) ? -1 : 1; });
+  }
   function needStaff() { if (!ctx.isStaff) throw new Error('スタッフ用の合言葉が違います'); }
   function needMember(m) { if (!m) throw new Error('会員が見つかりません'); return m; }
 
@@ -206,6 +219,40 @@ function casaHandle(req, db, ctx) {
       db.log({ at: ctx.now, staff: req.staff || '', no: m.no, type: 'スタンプ', amount: 1, note: got.join('、') });
       out = staffView(m); out.got = got;
       return out;
+
+    case 'present': // スタッフ：いま在店中の人
+      needStaff();
+      return { present: presentList() };
+
+    case 'arrive': // スタッフ：来店（リング／トナメ）
+      needStaff();
+      m = needMember(byNo(req.no));
+      if (req.kind !== 'リング' && req.kind !== 'トナメ') throw new Error('リングかトナメを選んでください');
+      for (var p = 0; p < d.visits.length; p++) if (Number(d.visits[p].no) === Number(m.no) && !d.visits[p].outAt) throw new Error('この方はもう在店中です');
+      d.visits.push({ id: 'v' + Date.now(), no: m.no, kind: req.kind, inAt: ctx.now, outAt: '', buyin: '', out: '', bounty: '', staff: req.staff || '' });
+      m.visits = (Number(m.visits) || 0) + 1;
+      db.save(d);
+      db.log({ at: ctx.now, staff: req.staff || '', no: m.no, type: '来店', amount: '', note: req.kind });
+      return { present: presentList(), name: m.name, no: Number(m.no) };
+
+    case 'leave': // スタッフ：退店（総イン・アウト・バウンティ）
+      needStaff();
+      var vt = null;
+      for (var q2 = 0; q2 < d.visits.length; q2++) if (String(d.visits[q2].id) === String(req.visitId)) vt = d.visits[q2];
+      if (!vt || vt.outAt) throw new Error('在店中の記録が見つかりません');
+      m = needMember(byNo(vt.no));
+      var bi = Math.round(Number(req.buyin) || 0), ou = Math.round(Number(req.out) || 0), bo = Math.round(Number(req.bounty) || 0);
+      if (bi < 0 || ou < 0 || bo < 0) throw new Error('数を確かめてください');
+      vt.outAt = ctx.now; vt.buyin = bi; vt.out = ou; vt.bounty = bo; vt.staff = req.staff || vt.staff;
+      if (bo) m.bounty = (Number(m.bounty) || 0) + bo;
+      if (CASA_RULES.chipOnLeave) {
+        var nc = (Number(m.chips) || 0) + ou - bi;
+        if (nc < 0) throw new Error('預入チップが足りません（残り ' + (Number(m.chips) || 0) + '）');
+        m.chips = nc;
+      }
+      db.save(d);
+      db.log({ at: ctx.now, staff: req.staff || '', no: m.no, type: '退店', amount: ou - bi, note: 'IN ' + bi + ' / OUT ' + ou + ' / Bounty ' + bo + (CASA_RULES.chipOnLeave ? ' / 残り ' + m.chips : '') });
+      return { present: presentList(), name: m.name, no: Number(m.no), bounty: Number(m.bounty) || 0, chips: Number(m.chips) || 0 };
 
     case 'chip': // スタッフ：チップを預かる（＋）／払い出す（−）
       needStaff();
