@@ -114,3 +114,6 @@ video { width:100%; border-radius:14px; background:#000; display:none; }
 .rk .nm i { font-style:normal; font-size:9px; letter-spacing:.1em; background:#2f7df6; color:#fff; border-radius:999px; padding:2px 7px; margin-left:8px; vertical-align:2px; }
 .rankbox .rk:first-of-type { border-top:1px solid var(--line); }
 .rankbox .rk.me { border-top-color:transparent; }
+
+/* スタンプを使わない店（札幌） */
+.no-stamp .stamp-only { display:none !important; }
