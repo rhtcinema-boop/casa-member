@@ -6,6 +6,8 @@ var CFG = {
 
 // 店ごとの切り替え。札幌は sapporo/ のページが CASA_STORE='sapporo' を先に置く。データは同じスプレッドシートの別タブ（members_sapporo など）。
 var CASA_STORE_ID = (typeof CASA_STORE === 'string') ? CASA_STORE : '';
+// 札幌はスタンプと特典を使わない（2026-11-24 オーナー指定）。style.css の .no-stamp が欄を隠す。
+if (CASA_STORE_ID === 'sapporo') document.documentElement.classList.add('no-stamp');
 if (CASA_STORE_ID === 'sapporo') CFG.LIFF_ID = '2012748533-jNeqsZC5'; // 札幌用 LIFF（casa札幌 会員証）
 
 // 手元で試すとき用: URL の末尾に ?demo=1 を付けると、この端末の中だけで動く。
