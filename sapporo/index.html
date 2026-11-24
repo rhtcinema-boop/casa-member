@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>会員証</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div id="app" hidden>
+  <div class="card">
+    <div class="info">
+      <img class="logo" src="../logo.png" alt="casa">
+      <div class="name" id="name"></div>
+      <div class="no" id="no"></div>
+    </div>
+    <div class="qr" id="qr"></div>
+  </div>
+
+  <h2>預入チップ</h2>
+  <div class="panel chips"><span>残り</span><b id="chips">0</b></div>
+
+  <h2>RING BOUNTY</h2>
+  <div class="panel chips"><span id="myRank"></span><b id="bounty">0</b></div>
+
+  <h2>ランキング</h2>
+  <div class="panel rankbox" id="rank"></div>
+
+  <h2>チップの増減</h2>
+  <div class="panel" id="moves"></div>
+
+  <h2>スタンプ</h2>
+  <div class="panel">
+    <div class="stamps" id="stamps"></div>
+    <div class="hint" id="hint"></div>
+  </div>
+
+  <h2>特典</h2>
+  <div class="panel" id="rewards"></div>
+</div>
+
+<div id="reg" class="reg" hidden>
+  <img class="logo" src="../logo.png" alt="casa">
+  <h1>会員登録</h1>
+  <input id="tel" type="tel" inputmode="numeric" autocomplete="tel" placeholder="電話番号">
+  <button class="gold big-btn" id="regBtn">登録する</button>
+</div>
+
+<div class="over" id="ask">
+  <div class="sheet">
+    <h3 id="askTitle"></h3>
+    <p>スタッフの前で押してください。押すと元に戻せません。</p>
+    <div class="row"><button class="ghost" id="askNo">やめる</button><button class="gold" id="askYes">使う</button></div>
+  </div>
+</div>
+<div class="done" id="done">
+  <div class="mark">✓</div>
+  <div class="big" id="doneTitle"></div>
+  <div>使用済み</div>
+  <div class="time" id="doneTime"></div>
+  <button class="ghost" id="doneClose">閉じる</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>var CASA_STORE = "sapporo";</script>
+<script src="../core.js"></script>
+<script src="../config.js"></script>
+<script>
+var idToken = '', pending = null;
+var $ = function (id) { return document.getElementById(id); };
+
+function toast(msg, kind) {
+  var t = $('toast'); t.textContent = msg; t.className = 'toast show ' + (kind || '');
+  clearTimeout(toast.t); toast.t = setTimeout(function () { t.className = 'toast'; }, 2600);
+}
+function call(req) { req.idToken = idToken; return casaApi(req); }
+
+function render(v) {
+  $('name').textContent = v.name || 'ゲスト';
+  $('no').textContent = 'No. ' + v.no;
+  $('chips').textContent = num(v.chips);
+  $('bounty').textContent = num(v.bounty);
+  $('myRank').textContent = v.myRank ? v.myRank + ' 位' : '';
+  var CROWN = '<svg class="crown" viewBox="0 0 48 34" aria-hidden="true"><path d="M4 30h40l3-22-12 9L24 2 13 17 1 8z"/></svg>';
+  var pod = v.ranking.slice(0, 3), rest = v.ranking.slice(3);
+  function podCell(r, i) {
+    if (!r) return '<div class="pd p' + (i + 1) + ' none"></div>';
+    return '<div class="pd p' + (i + 1) + (r.me ? ' me' : '') + '">' + (i === 0 ? CROWN : '') +
+      '<div class="medal">' + r.rank + '</div><div class="nm">' + esc(r.name) + '</div>' +
+      '<div class="pts"><b>' + num(r.bounty) + '</b><small>BOUNTY</small></div><div class="base"></div></div>';
+  }
+  $('rank').innerHTML = v.ranking.length
+    ? '<div class="podium">' + podCell(pod[1], 1) + podCell(pod[0], 0) + podCell(pod[2], 2) + '</div>' +
+      rest.map(function (r) {
+        return '<div class="rk' + (r.me ? ' me' : '') + '"><span class="pos">' + r.rank + '</span><span class="nm">' + esc(r.name) + (r.me ? '<i>あなた</i>' : '') + '</span><b>' + num(r.bounty) + '</b></div>';
+      }).join('')
+    : '<div class="empty">まだありません</div>';
+  $('moves').innerHTML = v.moves.length ? v.moves.map(function (x) {
+    var d = new Date(x.at), a = Number(x.amount);
+    var when = (d.getMonth() + 1) + '/' + d.getDate() + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+    return '<div class="h"><span class="when">' + when + '</span><span class="ty">' + esc(x.type) + '<small>' + esc(String(x.note).replace(/\d+/, function (n) { return num(n); })) + '</small></span><b class="' + (a > 0 ? 'plus' : 'minus') + '">' + (a > 0 ? '+' : '−') + num(Math.abs(a)) + '</b></div>';
+  }).join('') : '<div class="empty">まだありません</div>';
+
+  if ($('qr').dataset.no !== String(v.no)) {
+    var q = qrcode(0, 'M'); q.addData('casa:' + v.no); q.make();
+    $('qr').innerHTML = q.createImgTag(4, 0); $('qr').dataset.no = v.no;
+  }
+
+  var gifts = {}; v.milestones.forEach(function (m) { gifts[m.at] = m.title; });
+  var h = '';
+  for (var i = 1; i <= v.goal; i++) {
+    h += '<div class="st' + (i <= v.stamps ? ' on' : '') + (gifts[i] ? ' gift' : '') + '">' + (i <= v.stamps ? '✓' : i) + '</div>';
+  }
+  $('stamps').innerHTML = h;
+  var next = v.milestones.filter(function (m) { return m.at > v.stamps; })[0];
+  $('hint').innerHTML = next ? '<b>あと ' + (next.at - v.stamps) + ' 個</b>で ' + esc(next.title) : '次の来店で新しい台紙になります';
+
+  $('rewards').innerHTML = v.rewards.length
+    ? v.rewards.map(function (r) { return '<div class="reward"><div class="t">' + esc(r.title) + '</div><button class="gold" data-id="' + esc(r.id) + '" data-title="' + esc(r.title) + '">使う</button></div>'; }).join('')
+    : '<div class="empty">今使える特典はありません</div>';
+}
+
+$('rewards').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  pending = { id: b.dataset.id, title: b.dataset.title };
+  $('askTitle').textContent = pending.title; $('ask').classList.add('show');
+});
+$('askNo').onclick = function () { $('ask').classList.remove('show'); };
+$('askYes').onclick = async function () {
+  $('askYes').disabled = true;
+  try {
+    var v = await call({ op: 'redeem', rewardId: pending.id });
+    render(v);
+    $('doneTitle').textContent = v.used.title;
+    $('doneTime').textContent = new Date(v.used.at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    $('done').classList.add('show');
+  } catch (err) { toast(err.message, 'ng'); }
+  $('ask').classList.remove('show'); $('askYes').disabled = false;
+};
+$('doneClose').onclick = function () { $('done').classList.remove('show'); };
+
+async function refresh() {
+  try { show(await call({ op: 'me' })); }
+  catch (err) { toast(err.message, 'ng'); }
+}
+function show(v) {
+  $('reg').hidden = !v.needPhone; $('app').hidden = !!v.needPhone;
+  if (!v.needPhone) render(v);
+}
+$('regBtn').onclick = async function () {
+  var tel = $('tel').value.replace(/[^0-9]/g, '');
+  if (!/^0[0-9]{9,10}$/.test(tel)) { toast('電話番号を確かめてください', 'ng'); return; }
+  $('regBtn').disabled = true;
+  try { show(await call({ op: 'me', phone: tel })); } catch (err) { toast(err.message, 'ng'); }
+  $('regBtn').disabled = false;
+};
+// 画面に戻ってきたら最新にする（スタッフが押した直後に反映させるため）
+document.addEventListener('visibilitychange', function () { if (!document.hidden) refresh(); });
+window.addEventListener('focus', refresh);
+
+(async function start() {
+  if (CFG.LIFF_ID) {
+    await new Promise(function (ok, ng) { var s = document.createElement('script'); s.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js'; s.onload = ok; s.onerror = ng; document.head.appendChild(s); });
+    await liff.init({ liffId: CFG.LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    idToken = liff.getIDToken();
+  }
+  refresh();
+})();
+</script>
+</body>
+</html>
