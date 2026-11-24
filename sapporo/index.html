@@ -99,7 +99,7 @@ function render(v) {
   $('moves').innerHTML = v.moves.length ? v.moves.map(function (x) {
     var d = new Date(x.at), a = Number(x.amount);
     var when = (d.getMonth() + 1) + '/' + d.getDate() + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
-    return '<div class="h"><span class="when">' + when + '</span><span class="ty">' + esc(x.type) + '<small>' + esc(String(x.note).replace(/\d+/, function (n) { return num(n); })) + '</small></span><b class="' + (a > 0 ? 'plus' : 'minus') + '">' + (a > 0 ? '+' : '−') + num(Math.abs(a)) + '</b></div>';
+    return '<div class="h"><span class="when">' + when + '</span><span class="ty">' + esc(x.type) + '<small>' + esc(String(x.note).replace(/\d+/g, function (n) { return num(n); })) + '</small></span><b class="' + (a > 0 ? 'plus' : 'minus') + '">' + (a > 0 ? '+' : '−') + num(Math.abs(a)) + '</b></div>';
   }).join('') : '<div class="empty">まだありません</div>';
 
   if ($('qr').dataset.no !== String(v.no)) {
