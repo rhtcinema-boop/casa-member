@@ -2,8 +2,8 @@
 // ブラウザの試し用（demo）と Apps Script（本番）で、このファイルをそのまま両方に入れて使う。
 
 var CASA_RULES = {
-  // 退店の時に、預入チップを「アウト − 総イン」だけ増減させるか（オーナー確認待ち。決まるまで false）
-  chipOnLeave: false,
+  // 退店の時に、預入チップを「アウト − 総イン」だけ増減させる（2026-11-24 オーナー指定）
+  chipOnLeave: true,
   goal: 10, // スタンプ何個で1枚たまるか
   // 何個目で特典が出るか（2026-11-22 オーナー指定）
   milestones: [
@@ -136,12 +136,12 @@ function casaHandle(req, db, ctx) {
     case 'arrive': // スタッフ：来店（リング／トナメ）
       needStaff();
       m = needMember(byNo(req.no));
-      if (req.kind !== 'リング' && req.kind !== 'トナメ') throw new Error('リングかトナメを選んでください');
       for (var p = 0; p < d.visits.length; p++) if (Number(d.visits[p].no) === Number(m.no) && !d.visits[p].outAt) throw new Error('この方はもう在店中です');
-      d.visits.push({ id: 'v' + Date.now(), no: m.no, kind: req.kind, inAt: ctx.now, outAt: '', buyin: '', out: '', bounty: '', staff: req.staff || '' });
+      d.visits.push({ id: 'v' + Date.now(), no: m.no, kind: 'アミューズリング', // この LINE はアミューズリング専用。ゲームの選択はない（2026-11-24 オーナー）
+        inAt: ctx.now, outAt: '', buyin: '', out: '', bounty: '', staff: req.staff || '' });
       m.visits = (Number(m.visits) || 0) + 1;
       db.save(d);
-      db.log({ at: ctx.now, staff: req.staff || '', no: m.no, type: '来店', amount: '', note: req.kind });
+      db.log({ at: ctx.now, staff: req.staff || '', no: m.no, type: '来店', amount: '', note: '' });
       return { present: presentList(), name: m.name, no: Number(m.no) };
 
     case 'leave': // スタッフ：退店（総イン・アウト・バウンティ）
