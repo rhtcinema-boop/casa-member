@@ -11,13 +11,13 @@ button:disabled { opacity:.4; }
 .panel { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px; }
 
 /* 会員証 */
-.card { background:linear-gradient(145deg,#1b55c9,#0b2a6b); border:1px solid #3f7be6; border-radius:20px; padding:18px; display:flex; gap:14px; align-items:center; box-shadow:0 10px 30px rgba(0,0,0,.5); }
+.card { background:linear-gradient(145deg,#1b55c9,#0b2a6b); border:1px solid #3f7be6; border-radius:20px; padding:22px 18px 20px; display:flex; flex-direction:column; align-items:center; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.5); }
 .card .info { flex:1; min-width:0; }
-.card img.logo { height:26px; display:block; margin-bottom:14px; }
-.card .name { font-size:19px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.card img.logo { height:28px; display:block; margin-bottom:18px; }
+.card .name { font-size:20px; font-weight:700; max-width:100%; margin-top:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .card .no { color:#cfe2ff; font-size:14px; letter-spacing:.12em; margin-top:4px; font-variant-numeric:tabular-nums; }
-.qr { background:#fff; padding:8px; border-radius:12px; line-height:0; flex:none; }
-.qr img, .qr canvas { width:104px; height:104px; image-rendering:pixelated; }
+.qr { background:#fff; padding:14px; border-radius:18px; line-height:0; flex:none; box-shadow:0 8px 24px rgba(0,0,0,.35); }
+.qr img, .qr canvas { width:min(62vw,250px); height:min(62vw,250px); image-rendering:pixelated; display:block; }
 
 .chips { display:flex; align-items:baseline; justify-content:space-between; }
 .chips b { font-size:34px; font-weight:800; color:var(--gold2); font-variant-numeric:tabular-nums; }
@@ -65,10 +65,10 @@ video { width:100%; border-radius:14px; background:#000; display:none; }
 .out { background:#3a1d1d; color:#ffb3b3; } .in { background:#16352a; color:#9af0c8; }
 
 /* 履歴と iPad 用の横並び */
-.h { display:flex; align-items:center; gap:10px; padding:10px 0; border-top:1px solid var(--line); font-size:14px; }
+.h { display:flex; align-items:center; gap:10px; padding:10px 0; border-top:1px solid var(--line); font-size:15px; }
 .h:first-child { border-top:0; padding-top:0; } .h:last-child { padding-bottom:0; }
-.h .when { color:var(--sub); font-variant-numeric:tabular-nums; flex:none; width:84px; }
-.h .ty { flex:1; min-width:0; } .h .ty small { display:block; color:var(--sub); font-size:13px; }
+.h .when { color:#b9c6e0; font-size:14px; font-variant-numeric:tabular-nums; flex:none; width:84px; }
+.h .ty { flex:1; min-width:0; } .h .ty small { display:block; color:#b9c6e0; font-size:14px; }
 .h b { font-variant-numeric:tabular-nums; } .h .plus { color:#9af0c8; } .h .minus { color:#ffb3b3; }
 .h .by { color:var(--sub); font-size:12px; flex:none; max-width:70px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 @media (min-width:760px) {
@@ -117,3 +117,12 @@ video { width:100%; border-radius:14px; background:#000; display:none; }
 
 /* スタンプを使わない店（札幌） */
 .no-stamp .stamp-only { display:none !important; }
+
+/* 画面の出し分け（会員証／ランキング） */
+.v-rank .sec-card, .v-card .sec-rank { display:none !important; }
+
+/* 数字の単位・同率の印 */
+.chips .unit { text-align:right; line-height:1.05; }
+.chips .unit small { display:block; font-size:11px; letter-spacing:.14em; color:var(--sub); margin-top:2px; }
+.pd .tie { font-size:11px; color:var(--c); margin:-4px 0 4px; letter-spacing:.06em; }
+.rk .nm em { font-style:normal; font-size:11px; color:var(--sub); margin-left:8px; }
