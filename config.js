@@ -6,8 +6,8 @@ var CFG = {
 
 // 店ごとの切り替え。札幌は sapporo/ のページが CASA_STORE='sapporo' を先に置く。データは同じスプレッドシートの別タブ（members_sapporo など）。
 var CASA_STORE_ID = (typeof CASA_STORE === 'string') ? CASA_STORE : '';
-// 札幌はスタンプと特典を使わない（2026-11-24 オーナー指定）。style.css の .no-stamp が欄を隠す。
-if (CASA_STORE_ID === 'sapporo') document.documentElement.classList.add('no-stamp');
+// スタンプと特典は使わない（札幌・渋谷とも。2026-11-24 オーナー指定）。style.css の .no-stamp が欄を隠す。
+document.documentElement.classList.add('no-stamp');
 if (CASA_STORE_ID === 'sapporo') CFG.LIFF_ID = '2012748533-jNeqsZC5'; // 札幌用 LIFF（casa札幌 会員証）
 
 // 会員証QRの中身。渋谷は casa:1001（前からの形のまま）、札幌は casa-sapporo:1001。店をまたいで読んだら止める。
@@ -25,7 +25,7 @@ var CASA_VIEW = (function () {
   var q = new URLSearchParams(location.search);
   var st = q.get('liff.state') || '';
   if (q.get('view') === 'rank' || st.indexOf('view=rank') >= 0) return 'rank';
-  return CASA_STORE_ID === 'sapporo' ? 'card' : '';
+  return 'card'; // 両店とも、メニューは「会員証」と「ランキング」の2つ
 })();
 if (CASA_VIEW) document.documentElement.classList.add('v-' + CASA_VIEW);
 if (CASA_VIEW === 'rank') document.title = 'ランキング';
