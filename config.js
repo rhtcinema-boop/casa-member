@@ -10,6 +10,17 @@ var CASA_STORE_ID = (typeof CASA_STORE === 'string') ? CASA_STORE : '';
 if (CASA_STORE_ID === 'sapporo') document.documentElement.classList.add('no-stamp');
 if (CASA_STORE_ID === 'sapporo') CFG.LIFF_ID = '2012748533-jNeqsZC5'; // 札幌用 LIFF（casa札幌 会員証）
 
+// 画面の出し分け。?view=rank はランキングだけ。札幌はメニューが2つ（会員証／ランキング）なので、会員証の側ではランキングを出さない。
+// LINE の中では最初 ?liff.state=%3Fview%3Drank の形で来るので、そちらも見る。
+var CASA_VIEW = (function () {
+  var q = new URLSearchParams(location.search);
+  var st = q.get('liff.state') || '';
+  if (q.get('view') === 'rank' || st.indexOf('view=rank') >= 0) return 'rank';
+  return CASA_STORE_ID === 'sapporo' ? 'card' : '';
+})();
+if (CASA_VIEW) document.documentElement.classList.add('v-' + CASA_VIEW);
+if (CASA_VIEW === 'rank') document.title = 'ランキング';
+
 // 手元で試すとき用: URL の末尾に ?demo=1 を付けると、この端末の中だけで動く。
 if (location.search.indexOf('demo=1') >= 0) { CFG.LIFF_ID = ''; CFG.GAS_URL = ''; }
 
