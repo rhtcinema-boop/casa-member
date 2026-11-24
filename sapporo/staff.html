@@ -127,8 +127,9 @@ $('scan').onclick = async function () {
     if (v.videoWidth) {
       c.width = v.videoWidth; c.height = v.videoHeight; g.drawImage(v, 0, 0);
       var r = jsQR(g.getImageData(0, 0, c.width, c.height).data, c.width, c.height);
-      var m = r && /^casa:(\d+)$/.exec(r.data);
-      if (m) { stopScan(); openNo(m[1]); return; }
+      var m = r && readMemberQr(r.data);
+      if (m && m.other) { stopScan(); toast('別の店の会員証です', 'ng'); return; }
+      if (m) { stopScan(); openNo(m.no); return; }
     }
     requestAnimationFrame(tick);
   })();
