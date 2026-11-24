@@ -8,35 +8,33 @@
 </head>
 <body>
 <div id="app" hidden>
-  <div class="card">
-    <div class="info">
-      <img class="logo" src="logo.png" alt="casa">
-      <div class="name" id="name"></div>
-      <div class="no" id="no"></div>
-    </div>
+  <div class="card sec-card">
+    <img class="logo" src="logo.png" alt="casa">
     <div class="qr" id="qr"></div>
+    <div class="name" id="name"></div>
+    <div class="no" id="no"></div>
   </div>
 
-  <h2>預入チップ</h2>
-  <div class="panel chips"><span>残り</span><b id="chips">0</b></div>
+  <h2 class="sec-card">預入チップ</h2>
+  <div class="panel chips sec-card"><span>残り</span><b id="chips">0</b></div>
 
   <h2>RING BOUNTY</h2>
-  <div class="panel chips"><span id="myRank"></span><b id="bounty">0</b></div>
+  <div class="panel chips"><span id="myRank"></span><span class="unit"><b id="bounty">0</b><small>BOUNTY</small></span></div>
 
-  <h2>ランキング</h2>
-  <div class="panel rankbox" id="rank"></div>
+  <h2 class="sec-rank">ランキング</h2>
+  <div class="panel rankbox sec-rank" id="rank"></div>
 
-  <h2>チップの増減</h2>
-  <div class="panel" id="moves"></div>
+  <h2 class="sec-card">チップの増減</h2>
+  <div class="panel sec-card" id="moves"></div>
 
-  <h2 class="stamp-only">スタンプ</h2>
-  <div class="panel stamp-only">
+  <h2 class="stamp-only sec-card">スタンプ</h2>
+  <div class="panel stamp-only sec-card">
     <div class="stamps" id="stamps"></div>
     <div class="hint" id="hint"></div>
   </div>
 
-  <h2 class="stamp-only">特典</h2>
-  <div class="panel stamp-only" id="rewards"></div>
+  <h2 class="stamp-only sec-card">特典</h2>
+  <div class="panel stamp-only sec-card" id="rewards"></div>
 </div>
 
 <div id="reg" class="reg" hidden>
@@ -82,17 +80,19 @@ function render(v) {
   $('bounty').textContent = num(v.bounty);
   $('myRank').textContent = v.myRank ? v.myRank + ' 位' : '';
   var CROWN = '<svg class="crown" viewBox="0 0 48 34" aria-hidden="true"><path d="M4 30h40l3-22-12 9L24 2 13 17 1 8z"/></svg>';
+  var cnt = {}; v.ranking.forEach(function (r) { cnt[r.rank] = (cnt[r.rank] || 0) + 1; });
+  v.ranking.forEach(function (r) { r.tie = cnt[r.rank] > 1; }); // 同じ順位が2人以上なら「同率」
   var pod = v.ranking.slice(0, 3), rest = v.ranking.slice(3);
   function podCell(r, i) {
     if (!r) return '<div class="pd p' + (i + 1) + ' none"></div>';
     return '<div class="pd p' + (i + 1) + (r.me ? ' me' : '') + '">' + (i === 0 ? CROWN : '') +
-      '<div class="medal">' + r.rank + '</div><div class="nm">' + esc(r.name) + '</div>' +
+      '<div class="medal">' + r.rank + '</div>' + (r.tie ? '<div class="tie">同率</div>' : '') + '<div class="nm">' + esc(r.name) + '</div>' +
       '<div class="pts"><b>' + num(r.bounty) + '</b><small>BOUNTY</small></div><div class="base"></div></div>';
   }
   $('rank').innerHTML = v.ranking.length
     ? '<div class="podium">' + podCell(pod[1], 1) + podCell(pod[0], 0) + podCell(pod[2], 2) + '</div>' +
       rest.map(function (r) {
-        return '<div class="rk' + (r.me ? ' me' : '') + '"><span class="pos">' + r.rank + '</span><span class="nm">' + esc(r.name) + (r.me ? '<i>あなた</i>' : '') + '</span><b>' + num(r.bounty) + '</b></div>';
+        return '<div class="rk' + (r.me ? ' me' : '') + '"><span class="pos">' + r.rank + '</span><span class="nm">' + esc(r.name) + (r.tie ? '<em>同率</em>' : '') + (r.me ? '<i>あなた</i>' : '') + '</span><b>' + num(r.bounty) + '</b></div>';
       }).join('')
     : '<div class="empty">まだありません</div>';
   $('moves').innerHTML = v.moves.length ? v.moves.map(function (x) {
@@ -103,7 +103,7 @@ function render(v) {
 
   if ($('qr').dataset.no !== String(v.no)) {
     var q = qrcode(0, 'M'); q.addData('casa:' + v.no); q.make();
-    $('qr').innerHTML = q.createImgTag(4, 0); $('qr').dataset.no = v.no;
+    $('qr').innerHTML = q.createImgTag(8, 0); $('qr').firstChild.alt = '会員証のQRコード No. ' + v.no; $('qr').dataset.no = v.no;
   }
 
   var gifts = {}; v.milestones.forEach(function (m) { gifts[m.at] = m.title; });
