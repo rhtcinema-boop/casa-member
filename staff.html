@@ -27,6 +27,7 @@
     <div class="who"><span class="name" id="name"></span><span class="no" id="no"></span></div>
     <div class="tel" id="tel"></div>
     <div class="kv" style="margin-top:12px"><span>チップ残り</span><b id="chips"></b></div>
+    <div class="kv"><span>Ring Bounty</span><b id="bounty"></b></div>
     <div class="kv"><span>スタンプ</span><b id="stamps"></b></div>
     <div class="kv"><span>使える特典</span><b id="rw"></b></div>
   </div>
@@ -39,6 +40,9 @@
     <input id="amt" placeholder="数" inputmode="numeric">
     <div class="row"><button class="big-btn in" id="in">預かる ＋</button><button class="big-btn out" id="outB">払い出す −</button></div>
   </div>
+
+  <h2>RING BOUNTY</h2>
+  <div class="row"><button class="big-btn in" id="bPlus">＋1</button><button class="big-btn out" id="bMinus">−1</button></div>
 </div>
 </div><div id="histCol" hidden>
   <h2>履歴</h2>
@@ -67,13 +71,14 @@ function render(v) {
   $('name').textContent = v.name || 'ゲスト'; $('no').textContent = 'No. ' + v.no;
   $('tel').textContent = v.phone || '';
   $('chips').textContent = num(v.chips);
+  $('bounty').textContent = num(v.bounty);
   $('stamps').textContent = v.stamps + ' / ' + v.goal;
   $('rw').textContent = v.rewards.length;
   $('histCol').hidden = false;
   $('hist').innerHTML = (v.history || []).length ? v.history.map(function (x) {
     var d = new Date(x.at), a = Number(x.amount);
     var when = (d.getMonth() + 1) + '/' + d.getDate() + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
-    var val = x.type === '預かり' || x.type === '払い出し' ? '<b class="' + (a > 0 ? 'plus' : 'minus') + '">' + (a > 0 ? '+' : '−') + num(Math.abs(a)) + '</b>' : '';
+    var val = x.type === '預かり' || x.type === '払い出し' || x.type === 'Bounty' ? '<b class="' + (a > 0 ? 'plus' : 'minus') + '">' + (a > 0 ? '+' : '−') + num(Math.abs(a)) + '</b>' : '';
     return '<div class="h"><span class="when">' + when + '</span><span class="ty">' + esc(x.type) + (x.note ? '<small>' + esc(x.note) + '</small>' : '') + '</span>' + val + '<span class="by">' + esc(x.staff) + '</span></div>';
   }).join('') : '<div class="empty">まだ履歴がありません</div>';
   $('stamp').disabled = v.stampedToday;
@@ -97,6 +102,8 @@ function chip(sign) {
   if (!confirm((sign > 0 ? '預かる ＋' : '払い出す −') + num(a) + '\n' + (cur.name || 'ゲスト') + '（No. ' + cur.no + '）')) return;
   run({ op: 'chip', no: cur.no, amount: sign * a }, '記録しました').then(function (v) { if (v) $('amt').value = ''; });
 }
+$('bPlus').onclick = function () { run({ op: 'bounty', no: cur.no, amount: 1 }, '記録しました'); };
+$('bMinus').onclick = function () { if (confirm('Ring Bounty −1\n' + (cur.name || 'ゲスト') + '（No. ' + cur.no + '）')) run({ op: 'bounty', no: cur.no, amount: -1 }, '記録しました'); };
 $('in').onclick = function () { chip(1); };
 $('outB').onclick = function () { chip(-1); };
 
